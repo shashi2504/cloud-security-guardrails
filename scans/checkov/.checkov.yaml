@@ -1,0 +1,66 @@
+# Checkov configuration
+# Docs: https://www.checkov.io/2.Basics/CLI%20Command%20Reference.html
+
+directory:
+  - terraform
+
+framework:
+  - terraform
+
+# ── Checks to enforce ─────────────────────────────────
+check:
+  # S3
+  - CKV_AWS_18     # S3 access logging enabled
+  - CKV_AWS_19     # S3 default encryption enabled
+  - CKV_AWS_20     # S3 bucket not public via ACL
+  - CKV_AWS_21     # S3 versioning enabled
+  - CKV_AWS_52     # S3 MFA delete enabled
+  - CKV_AWS_145    # S3 encrypted with KMS (not SSE-S3)
+  - CKV2_AWS_6     # S3 public access block all settings
+
+  # IAM
+  - CKV_AWS_40     # IAM no inline policies on users
+  - CKV_AWS_274    # IAM no admin policies on users
+  - CKV_AWS_275    # IAM no direct policy attachments to users
+
+  # KMS
+  - CKV_AWS_7      # KMS key rotation enabled
+  - CKV2_AWS_64    # KMS key rotation period ≤ 365 days
+
+  # VPC / Network
+  - CKV_AWS_25     # Security group no unrestricted SSH
+  - CKV_AWS_24     # Security group no unrestricted RDP
+  - CKV_AWS_277    # Security group no unrestricted ingress on any port
+  - CKV2_AWS_12    # VPC default security group closed
+  - CKV2_AWS_11    # VPC flow logs enabled
+
+  # CloudTrail
+  - CKV_AWS_35     # CloudTrail logs encrypted
+  - CKV_AWS_36     # CloudTrail log file validation enabled
+  - CKV_AWS_67     # CloudTrail multi-region enabled
+  - CKV2_AWS_10    # CloudTrail sends to CloudWatch
+
+  # EC2
+  - CKV_AWS_8      # EC2 uses IMDSv2 (blocks SSRF metadata attacks)
+  - CKV_AWS_135    # EC2 EBS volume encrypted
+  - CKV2_AWS_41    # EC2 IAM role attached (no hard-coded credentials)
+
+# ── Checks to skip (documented reasons) ───────────────
+skip-check:
+  - CKV_AWS_144    # S3 cross-region replication — not needed for dev
+  - CKV_AWS_300    # S3 lifecycle policy — handled in Terraform directly
+
+# ── Output settings ────────────────────────────────────
+output:
+  - cli
+  - sarif
+
+sarif-file-path: checkov-results.sarif
+
+compact: false       # Full details on each failure
+quiet: false
+soft-fail: false     # Hard fail pipeline on violations
+
+# ── Baseline — suppress already-known findings ─────────
+# Generate with: checkov -d terraform --create-baseline
+# baseline: .checkov.baseline

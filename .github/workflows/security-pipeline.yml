@@ -1,0 +1,406 @@
+name: Cloud Security Guardrails Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'terraform/**'
+      - 'environments/**'
+      - 'policies/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'terraform/**'
+      - 'environments/**'
+      - 'policies/**'
+
+# SECURITY: Minimal permissions — only what each job needs
+permissions:
+  contents: read
+  pull-requests: write    # Post scan results as PR comments
+  security-events: write  # Upload SARIF to GitHub Security tab
+  id-token: write         # OIDC auth to AWS — no static keys
+
+env:
+  TF_VERSION: "1.6.0"
+  AWS_REGION: "us-east-1"
+  ENVIRONMENT: "dev"
+  WORKING_DIR: "terraform/environments/dev"
+
+jobs:
+
+  # ═══════════════════════════════════════════════════
+  # JOB 1 — TERRAFORM FORMAT CHECK
+  # Catches sloppy formatting before wasting CI time
+  # ═══════════════════════════════════════════════════
+  terraform-fmt:
+    name: "Terraform Format"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Check formatting
+        id: fmt
+        run: terraform fmt -check -recursive -diff
+        working-directory: ${{ env.WORKING_DIR }}
+        # -check  → exit 1 if any file needs formatting
+        # -diff   → show exactly what needs changing
+
+      - name: Comment on PR — fmt failed
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ **Terraform fmt failed** — run `terraform fmt -recursive` locally and push again.'
+            })
+
+  # ═══════════════════════════════════════════════════
+  # JOB 2 — TERRAFORM VALIDATE
+  # Catches syntax errors & invalid references
+  # ═══════════════════════════════════════════════════
+  terraform-validate:
+    name: "Terraform Validate"
+    runs-on: ubuntu-latest
+    needs: terraform-fmt
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_CICD_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          # SECURITY: Token valid for 1 hour only
+          role-session-name: GitHubActions-Validate-${{ github.run_id }}
+
+      - name: Terraform Init
+        run: terraform init -backend=false
+        # -backend=false → no state access needed for validate
+        working-directory: ${{ env.WORKING_DIR }}
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: ${{ env.WORKING_DIR }}
+
+  # ═══════════════════════════════════════════════════
+  # JOB 3 — TFSEC SCAN
+  # Scans Terraform for known security misconfigs
+  # ═══════════════════════════════════════════════════
+  tfsec-scan:
+    name: "tfsec Security Scan"
+    runs-on: ubuntu-latest
+    needs: terraform-validate
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run tfsec
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: terraform
+          config_file: scans/tfsec/.tfsec.yml
+          # SECURITY: CRITICAL and HIGH findings block the pipeline
+          minimum_severity: HIGH
+          # Output SARIF for GitHub Security tab
+          format: sarif
+          soft_fail: false    # Hard fail — do not continue if findings exist
+
+      - name: Upload tfsec SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+          category: tfsec
+
+      - name: Post tfsec summary to PR
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🚨 **tfsec found HIGH/CRITICAL security issues.**\nCheck the Security tab for details. Fix all findings before merge.'
+            })
+
+  # ═══════════════════════════════════════════════════
+  # JOB 4 — CHECKOV SCAN
+  # Policy-as-code: 1000+ built-in AWS security checks
+  # ═══════════════════════════════════════════════════
+  checkov-scan:
+    name: "Checkov Policy Scan"
+    runs-on: ubuntu-latest
+    needs: terraform-validate
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: terraform
+          config_file: scans/checkov/.checkov.yaml
+          framework: terraform
+          output_format: sarif
+          output_file_path: checkov-results.sarif
+          # SECURITY: Fail on any HIGH or CRITICAL
+          soft_fail: false
+          download_external_modules: false    # Never run untrusted modules
+
+      - name: Upload Checkov SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: checkov-results.sarif
+          category: checkov
+
+  # ═══════════════════════════════════════════════════
+  # JOB 5 — OPA POLICY VALIDATION
+  # Custom security rules specific to this project
+  # Runs AFTER tfsec + Checkov in parallel
+  # ═══════════════════════════════════════════════════
+  opa-policy-check:
+    name: "OPA Custom Policy Check"
+    runs-on: ubuntu-latest
+    needs: [ tfsec-scan, checkov-scan ]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_CICD_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-OPA-${{ github.run_id }}
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ${{ env.WORKING_DIR }}
+
+      - name: Terraform Plan → JSON
+        run: |
+          terraform plan -out=tfplan
+          terraform show -json tfplan > tfplan.json
+        working-directory: ${{ env.WORKING_DIR }}
+        env:
+          TF_VAR_owner: "security-team"
+          TF_VAR_github_org: ${{ github.repository_owner }}
+          TF_VAR_github_repo: ${{ github.event.repository.name }}
+          TF_VAR_allowed_ssh_cidrs: '["10.0.0.0/8"]'
+
+      - name: Install OPA
+        run: |
+          curl -L -o opa \
+            https://openpolicyagent.org/downloads/v0.60.0/opa_linux_amd64_static
+          chmod +x opa
+          sudo mv opa /usr/local/bin/
+
+      - name: Run OPA policies
+        run: |
+          echo "Running OPA policy checks..."
+          FAILED=0
+
+          for policy in policies/opa/*.rego; do
+            echo "──────────────────────────────"
+            echo "Checking: $policy"
+            
+            result=$(opa eval \
+              --data "$policy" \
+              --input terraform/environments/dev/tfplan.json \
+              --format pretty \
+              "data.security.deny")
+
+            echo "Result: $result"
+
+            # If deny set is non-empty, policy failed
+            if echo "$result" | grep -q '"'; then
+              echo "❌ POLICY FAILED: $policy"
+              echo "$result"
+              FAILED=1
+            else
+              echo "✅ PASSED: $policy"
+            fi
+          done
+
+          if [ $FAILED -eq 1 ]; then
+            echo ""
+            echo "🚨 OPA policy checks FAILED — deployment blocked"
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ All OPA policies passed"
+
+  # ═══════════════════════════════════════════════════
+  # JOB 6 — TERRAFORM PLAN (PR preview)
+  # Shows exactly what will change — reviewers can see
+  # Only runs on PRs — not on direct pushes to main
+  # ═══════════════════════════════════════════════════
+  terraform-plan:
+    name: "Terraform Plan"
+    runs-on: ubuntu-latest
+    needs: opa-policy-check
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_CICD_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-Plan-${{ github.run_id }}
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ${{ env.WORKING_DIR }}
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          terraform plan -no-color 2>&1 | tee plan-output.txt
+          echo "exitcode=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+        working-directory: ${{ env.WORKING_DIR }}
+        env:
+          TF_VAR_owner: "security-team"
+          TF_VAR_github_org: ${{ github.repository_owner }}
+          TF_VAR_github_repo: ${{ github.event.repository.name }}
+          TF_VAR_allowed_ssh_cidrs: '["10.0.0.0/8"]'
+
+      - name: Post plan to PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync(
+              '${{ env.WORKING_DIR }}/plan-output.txt', 'utf8'
+            ).slice(0, 65000);   // GitHub comment limit
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Terraform Plan Output
+              \`\`\`hcl
+              ${plan}
+              \`\`\`
+              > ⚠️ Review all changes before approving merge`
+            })
+
+  # ═══════════════════════════════════════════════════
+  # JOB 7 — TERRAFORM APPLY
+  # Only runs on merge to main — never on PRs
+  # Requires all security jobs to pass first
+  # ═══════════════════════════════════════════════════
+  terraform-apply:
+    name: "Terraform Apply"
+    runs-on: ubuntu-latest
+    needs: opa-policy-check
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production    # Requires manual approval in GitHub
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_CICD_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-Apply-${{ github.run_id }}
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ${{ env.WORKING_DIR }}
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        working-directory: ${{ env.WORKING_DIR }}
+        env:
+          TF_VAR_owner: "security-team"
+          TF_VAR_github_org: ${{ github.repository_owner }}
+          TF_VAR_github_repo: ${{ github.event.repository.name }}
+          TF_VAR_allowed_ssh_cidrs: '["10.0.0.0/8"]'
+
+  # ═══════════════════════════════════════════════════
+  # JOB 8 — POST-DEPLOY PROWLER SCAN
+  # Verify live infra matches security baseline
+  # Only runs after successful apply
+  # ═══════════════════════════════════════════════════
+  prowler-post-deploy:
+    name: "Prowler Post-Deploy Scan"
+    runs-on: ubuntu-latest
+    needs: terraform-apply
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_SECURITY_AUDIT_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-Prowler-${{ github.run_id }}
+
+      - name: Install Prowler
+        run: pip install prowler
+
+      - name: Run Prowler CIS scan
+        run: |
+          prowler aws \
+            --compliance cis_aws_foundations_benchmark_v1_5 \
+            --region ${{ env.AWS_REGION }} \
+            --output-formats json html \
+            --output-directory prowler-results \
+            --severity critical high \
+            --ignore-exit-code-3    # Don't fail on medium findings
+
+      - name: Upload Prowler report
+        uses: actions/upload-artifact@v4
+        with:
+          name: prowler-security-report-${{ github.run_id }}
+          path: prowler-results/
+          retention-days: 90

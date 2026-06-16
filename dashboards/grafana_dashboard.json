@@ -1,0 +1,407 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_CLOUDWATCH",
+      "label": "CloudWatch",
+      "type": "datasource",
+      "pluginId": "cloudwatch"
+    }
+  ],
+  "title": "Cloud Security Guardrails — Security Posture",
+  "uid": "cloud-sec-guardrails",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "1h",
+  "time": { "from": "now-30d", "to": "now" },
+
+  "panels": [
+
+    {
+      "id": 1,
+      "title": "Security Score",
+      "type": "gauge",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 8 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "minVizWidth": 75,
+        "minVizHeight": 75,
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            { "color": "red",    "value": 0  },
+            { "color": "orange", "value": 60 },
+            { "color": "yellow", "value": 75 },
+            { "color": "green",  "value": 90 }
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 100,
+          "unit": "none",
+          "displayName": "Score"
+        }
+      },
+      "targets": [{
+        "datasource": { "type": "cloudwatch" },
+        "namespace":  "${PROJECT_NAME}/SecurityMetrics",
+        "metricName": "SecurityScore",
+        "statistics": ["Average"],
+        "period":     "86400",
+        "dimensions": { "Project": "${PROJECT_NAME}", "Environment": "dev" },
+        "refId": "A"
+      }]
+    },
+
+    {
+      "id": 2,
+      "title": "Critical Findings",
+      "type": "stat",
+      "gridPos": { "x": 6, "y": 0, "w": 4, "h": 4 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "textMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "red",   "value": 1 }
+            ]
+          }
+        }
+      },
+      "targets": [{
+        "datasource": { "type": "cloudwatch" },
+        "namespace":  "${PROJECT_NAME}/SecurityMetrics",
+        "metricName": "CriticalFindings",
+        "statistics": ["Maximum"],
+        "period":     "86400",
+        "dimensions": { "Project": "${PROJECT_NAME}" },
+        "refId": "A"
+      }]
+    },
+
+    {
+      "id": 3,
+      "title": "High Findings",
+      "type": "stat",
+      "gridPos": { "x": 10, "y": 0, "w": 4, "h": 4 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": 0  },
+              { "color": "orange", "value": 5  },
+              { "color": "red",    "value": 10 }
+            ]
+          }
+        }
+      },
+      "targets": [{
+        "datasource": { "type": "cloudwatch" },
+        "namespace":  "${PROJECT_NAME}/SecurityMetrics",
+        "metricName": "HighFindings",
+        "statistics": ["Maximum"],
+        "period":     "86400",
+        "dimensions": { "Project": "${PROJECT_NAME}" },
+        "refId": "A"
+      }]
+    },
+
+    {
+      "id": 4,
+      "title": "Compliance Pass Rate",
+      "type": "stat",
+      "gridPos": { "x": 14, "y": 0, "w": 4, "h": 4 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red",    "value": 0  },
+              { "color": "orange", "value": 70 },
+              { "color": "green",  "value": 85 }
+            ]
+          }
+        }
+      },
+      "targets": [{
+        "datasource": { "type": "cloudwatch" },
+        "namespace":  "${PROJECT_NAME}/SecurityMetrics",
+        "metricName": "PassRate",
+        "statistics": ["Average"],
+        "period":     "86400",
+        "dimensions": { "Project": "${PROJECT_NAME}" },
+        "refId": "A"
+      }]
+    },
+
+    {
+      "id": 5,
+      "title": "Security Score — 30 Day Trend",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 8, "w": 14, "h": 8 },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 100,
+          "unit": "none",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red",    "value": 0  },
+              { "color": "orange", "value": 60 },
+              { "color": "green",  "value": 75 }
+            ]
+          },
+          "custom": {
+            "lineWidth":     2,
+            "fillOpacity":  20,
+            "spanNulls":    false
+          }
+        }
+      },
+      "targets": [{
+        "datasource": { "type": "cloudwatch" },
+        "namespace":  "${PROJECT_NAME}/SecurityMetrics",
+        "metricName": "SecurityScore",
+        "statistics": ["Average"],
+        "period":     "86400",
+        "dimensions": { "Project": "${PROJECT_NAME}", "Environment": "dev" },
+        "refId": "A",
+        "label": "Security Score"
+      }]
+    },
+
+    {
+      "id": 6,
+      "title": "Findings by Severity — 30 Day Trend",
+      "type": "timeseries",
+      "gridPos": { "x": 14, "y": 8, "w": 10, "h": 8 },
+      "fieldConfig": {
+        "defaults": {
+          "min":  0,
+          "unit": "none",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Critical" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#d13212", "mode": "fixed" }}]
+          },
+          {
+            "matcher": { "id": "byName", "options": "High" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#ff9900", "mode": "fixed" }}]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Medium" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#dfb52c", "mode": "fixed" }}]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "cloudwatch" },
+          "namespace":  "${PROJECT_NAME}/SecurityMetrics",
+          "metricName": "CriticalFindings",
+          "statistics": ["Maximum"],
+          "period":     "86400",
+          "dimensions": { "Project": "${PROJECT_NAME}" },
+          "refId": "A", "label": "Critical"
+        },
+        {
+          "datasource": { "type": "cloudwatch" },
+          "namespace":  "${PROJECT_NAME}/SecurityMetrics",
+          "metricName": "HighFindings",
+          "statistics": ["Maximum"],
+          "period":     "86400",
+          "dimensions": { "Project": "${PROJECT_NAME}" },
+          "refId": "B", "label": "High"
+        },
+        {
+          "datasource": { "type": "cloudwatch" },
+          "namespace":  "${PROJECT_NAME}/SecurityMetrics",
+          "metricName": "FindingCount",
+          "statistics": ["Maximum"],
+          "period":     "86400",
+          "dimensions": { "Project": "${PROJECT_NAME}", "Severity": "Medium" },
+          "refId": "C", "label": "Medium"
+        }
+      ]
+    },
+
+    {
+      "id": 7,
+      "title": "Unauthorised API Calls",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 6 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": { "fixedColor": "#d13212", "mode": "fixed" },
+          "custom": { "lineWidth": 2, "fillOpacity": 15 }
+        }
+      },
+      "targets": [{
+        "datasource": { "type": "cloudwatch" },
+        "namespace":  "${PROJECT_NAME}/SecurityMetrics",
+        "metricName": "UnauthorizedAPICalls",
+        "statistics": ["Sum"],
+        "period":     "300",
+        "refId": "A"
+      }]
+    },
+
+    {
+      "id": 8,
+      "title": "IAM Policy Changes",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 6 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": { "fixedColor": "#ff9900", "mode": "fixed" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "targets": [{
+        "datasource": { "type": "cloudwatch" },
+        "namespace":  "${PROJECT_NAME}/SecurityMetrics",
+        "metricName": "IAMPolicyChanges",
+        "statistics": ["Sum"],
+        "period":     "300",
+        "refId": "A"
+      }]
+    },
+
+    {
+      "id": 9,
+      "title": "Compliance Failures by Framework",
+      "type": "bargauge",
+      "gridPos": { "x": 0, "y": 22, "w": 12, "h": 6 },
+      "options": {
+        "orientation":   "horizontal",
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "displayMode":   "gradient"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": 0  },
+              { "color": "orange", "value": 10 },
+              { "color": "red",    "value": 25 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "cloudwatch" },
+          "namespace":  "${PROJECT_NAME}/SecurityMetrics",
+          "metricName": "ComplianceFailures",
+          "statistics": ["Maximum"],
+          "period":     "86400",
+          "dimensions": { "Project": "${PROJECT_NAME}", "Framework": "CIS" },
+          "refId": "A", "label": "CIS v1.5"
+        },
+        {
+          "datasource": { "type": "cloudwatch" },
+          "namespace":  "${PROJECT_NAME}/SecurityMetrics",
+          "metricName": "ComplianceFailures",
+          "statistics": ["Maximum"],
+          "period":     "86400",
+          "dimensions": { "Project": "${PROJECT_NAME}", "Framework": "FSBP" },
+          "refId": "B", "label": "AWS FSBP"
+        }
+      ]
+    },
+
+    {
+      "id": 10,
+      "title": "Root Account Usage",
+      "type": "stat",
+      "gridPos": { "x": 12, "y": 22, "w": 6, "h": 6 },
+      "options": {
+        "reduceOptions": { "calcs": ["sum"] },
+        "colorMode":     "background",
+        "graphMode":     "none",
+        "textMode":      "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "displayName": "Root Logins (30d)",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "red",   "value": 1 }
+            ]
+          }
+        }
+      },
+      "targets": [{
+        "datasource": { "type": "cloudwatch" },
+        "namespace":  "${PROJECT_NAME}/SecurityMetrics",
+        "metricName": "RootAccountUsage",
+        "statistics": ["Sum"],
+        "period":     "2592000",
+        "refId": "A"
+      }]
+    },
+
+    {
+      "id": 11,
+      "title": "Console Logins Without MFA",
+      "type": "stat",
+      "gridPos": { "x": 18, "y": 22, "w": 6, "h": 6 },
+      "options": {
+        "reduceOptions": { "calcs": ["sum"] },
+        "colorMode":     "background",
+        "graphMode":     "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "displayName": "No-MFA Logins (30d)",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "red",   "value": 1 }
+            ]
+          }
+        }
+      },
+      "targets": [{
+        "datasource": { "type": "cloudwatch" },
+        "namespace":  "${PROJECT_NAME}/SecurityMetrics",
+        "metricName": "ConsoleLoginNoMFA",
+        "statistics": ["Sum"],
+        "period":     "2592000",
+        "refId": "A"
+      }]
+    }
+  ]
+}

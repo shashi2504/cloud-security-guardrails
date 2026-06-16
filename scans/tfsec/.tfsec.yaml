@@ -1,0 +1,40 @@
+# tfsec configuration
+# Docs: https://aquasecurity.github.io/tfsec
+
+minimum_severity: HIGH
+
+exclude:
+  # Exclude checks that conflict with our existing controls
+  # Each exclusion must have a documented reason
+
+  - AVD-AWS-0178  # KMS key rotation — we enforce via Terraform, not default keys
+  - AVD-AWS-0057  # IAM wildcard — our audit role intentionally reads broadly
+
+include_passed: false     # Only show failures — reduce noise
+concise_output: false     # Full details for each finding
+
+custom_checks:
+  - code: CSG-001
+    description: "S3 bucket must use project KMS key, not AWS managed"
+    impact: "Data encrypted with wrong key — audit trail broken"
+    resolution: "Set kms_master_key_id to project KMS key ARN"
+    severity: CRITICAL
+    match:
+      block: resource
+      labels:
+        - aws_s3_bucket_server_side_encryption_configuration
+      attribute: rule.apply_server_side_encryption_by_default.sse_algorithm
+      is: "AES256"    # Block AWS managed encryption — KMS required
+
+  - code: CSG-002
+    description: "Security group must not allow unrestricted ingress"
+    impact: "Attack surface exposed to entire internet"
+    resolution: "Restrict cidr_blocks to specific IP ranges"
+    severity: CRITICAL
+    match:
+      block: resource
+      labels:
+        - aws_security_group
+        - aws_security_group_rule
+      attribute: ingress.cidr_blocks
+      contains: "0.0.0.0/0"
