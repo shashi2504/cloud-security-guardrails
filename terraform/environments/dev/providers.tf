@@ -6,7 +6,7 @@ provider "aws" {
       Project     = "cloud-security-guardrails"
       Environment = "dev"
       ManagedBy   = "terraform"
-      AutoRemediate = "enabled"
+      AutoRemediate = "disabled"
     }
   }
 }
