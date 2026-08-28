@@ -3,9 +3,9 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Project     = "cloud-security-guardrails"
-      Environment = "dev"
-      ManagedBy   = "terraform"
+      Project       = "cloud-security-guardrails"
+      Environment   = "dev"
+      ManagedBy     = "terraform"
       AutoRemediate = "disabled"
     }
   }

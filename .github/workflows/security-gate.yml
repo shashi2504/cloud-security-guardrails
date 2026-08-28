@@ -1,0 +1,125 @@
+name: Security Gate
+
+on:
+  pull_request:
+    paths: ['terraform/**', 'policies/**', 'docs/triage.md', 'scripts/**']
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  TFSEC_VERSION: v1.28.14
+  OPA_VERSION: v1.20.1
+
+jobs:
+  policy-tests:
+    name: Policy unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install OPA
+        run: |
+          curl -sSL -o /usr/local/bin/opa \
+            https://github.com/open-policy-agent/opa/releases/download/${OPA_VERSION}/opa_linux_amd64_static
+          chmod +x /usr/local/bin/opa
+          opa version
+
+      - name: Run policy tests
+        run: opa test policies/opa -v
+
+      - name: Verify triage table is in sync
+        run: ./scripts/extract_triage.py --check
+
+  scan:
+    name: Scan and gate
+    runs-on: ubuntu-latest
+    needs: policy-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [dev, vulnerable]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.16.0
+          terraform_wrapper: false
+
+      - name: Install tools
+        run: |
+          curl -sSL -o /usr/local/bin/tfsec \
+            https://github.com/aquasecurity/tfsec/releases/download/${TFSEC_VERSION}/tfsec-linux-amd64
+          chmod +x /usr/local/bin/tfsec
+          curl -sSL -o /usr/local/bin/opa \
+            https://github.com/open-policy-agent/opa/releases/download/${OPA_VERSION}/opa_linux_amd64_static
+          chmod +x /usr/local/bin/opa
+          pip install checkov
+
+      - name: Terraform format check
+        run: terraform fmt -check -recursive terraform/
+
+      - name: tfsec
+        # Scanners exit non-zero when they find anything. That is correct
+        # behaviour for them and wrong for this step: the gating decision
+        # belongs to OPA, not to the scanner's exit code.
+        continue-on-error: true
+        run: |
+          mkdir -p scans/tfsec/output
+          tfsec terraform/environments/${{ matrix.environment }} \
+            --format json --soft-fail \
+            > scans/tfsec/output/vulnerable.json
+
+      - name: Checkov
+        continue-on-error: true
+        run: |
+          mkdir -p scans/checkov/output
+          checkov -d terraform/environments/${{ matrix.environment }} \
+            --framework terraform --output json \
+            --output-file-path scans/checkov/output --soft-fail
+
+      - name: Normalize findings
+        run: ./scripts/normalize_findings.py > findings.json
+
+      - name: Classify against triage table
+        run: |
+          opa eval --format pretty \
+            --data policies/opa/scanner_triage.rego \
+            --data policies/opa/triage.json \
+            --input findings.json \
+            'data.guardrails.triage.summary'
+
+      - name: Gate
+        run: |
+          DENIALS=$(opa eval --format raw \
+            --data policies/opa/scanner_triage.rego \
+            --data policies/opa/triage.json \
+            --data policies/opa/environments.json \
+            --input findings.json \
+            'count(data.guardrails.triage.deny)')
+
+          echo "Blocking findings: $DENIALS"
+
+          if [ "${{ matrix.environment }}" = "vulnerable" ]; then
+            # This environment exists to be broken. Zero denials means the
+            # gate stopped detecting, which is the failure we care about.
+            if [ "$DENIALS" -eq 0 ]; then
+              echo "FAIL: vulnerable environment produced no blocking findings — detection has regressed"
+              exit 1
+            fi
+            echo "OK: detection working ($DENIALS blocking findings, as expected)"
+            exit 0
+          fi
+
+          if [ "$DENIALS" -gt 0 ]; then
+            opa eval --format pretty \
+              --data policies/opa/scanner_triage.rego \
+              --data policies/opa/triage.json \
+              --input findings.json \
+              'data.guardrails.triage.deny'
+            exit 1
+          fi
+          echo "OK: no blocking findings"
