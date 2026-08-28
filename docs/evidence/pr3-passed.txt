@@ -1,0 +1,8 @@
+# PR #3 — same bucket with public access blocked — gate PASSED
+# (vulnerable leg reports 19 blocking findings by design: detection regression test)
+
+OK: 40 rules in sync {'BLOCK': 19, 'WARN': 16, 'IGNORE': 5}
+Blocking findings: 19
+OK: detection working (19 blocking findings, as expected)
+Blocking findings: 0
+OK: no blocking findings

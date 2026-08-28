@@ -1,0 +1,15 @@
+# PR #1 — public S3 bucket added to dev/ — gate BLOCKED the merge
+
+OK: 40 rules in sync {'BLOCK': 19, 'WARN': 16, 'IGNORE': 5}
+Blocking findings: 9
+  "BLOCK [CKV2_AWS_6] Ensure that S3 bucket has a Public Access block (aws_s3_bucket.reports)",
+  "BLOCK [CKV_AWS_53] Ensure S3 bucket has block public ACLS enabled (aws_s3_bucket_public_access_block.reports)",
+  "BLOCK [CKV_AWS_54] Ensure S3 bucket has block public policy enabled (aws_s3_bucket_public_access_block.reports)",
+  "BLOCK [CKV_AWS_55] Ensure S3 bucket has ignore public ACLs enabled (aws_s3_bucket_public_access_block.reports)",
+  "BLOCK [CKV_AWS_56] Ensure S3 bucket has 'restrict_public_buckets' enabled (aws_s3_bucket_public_access_block.reports)",
+  "BLOCK [aws-s3-block-public-acls] S3 Access block should block public ACL (aws_s3_bucket_public_access_block.reports)",
+  "BLOCK [aws-s3-block-public-policy] S3 Access block should block public policy (aws_s3_bucket_public_access_block.reports)",
+  "BLOCK [aws-s3-ignore-public-acls] S3 Access Block should Ignore Public Acl (aws_s3_bucket_public_access_block.reports)",
+  "BLOCK [aws-s3-no-public-buckets] S3 Access block should restrict public bucket to limit access (aws_s3_bucket_public_access_block.reports)"
+Blocking findings: 19
+OK: detection working (19 blocking findings, as expected)
