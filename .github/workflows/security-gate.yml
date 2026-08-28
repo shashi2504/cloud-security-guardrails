@@ -71,7 +71,7 @@ jobs:
           mkdir -p scans/tfsec/output
           tfsec terraform/environments/${{ matrix.environment }} \
             --format json --soft-fail \
-            > scans/tfsec/output/vulnerable.json
+            > scans/tfsec/output/${{ matrix.environment }}.json
 
       - name: Checkov
         continue-on-error: true
@@ -82,7 +82,7 @@ jobs:
             --output-file-path scans/checkov/output --soft-fail
 
       - name: Normalize findings
-        run: ./scripts/normalize_findings.py > findings.json
+        run: SCAN_ENV=${{ matrix.environment }} ./scripts/normalize_findings.py > findings.json
 
       - name: Classify against triage table
         run: |

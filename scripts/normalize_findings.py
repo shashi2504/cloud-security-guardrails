@@ -6,12 +6,15 @@ different rule ID namespaces. Normalizing here keeps the Rego policy free
 of tool-specific parsing.
 """
 import json
+import os
 import sys
 from pathlib import Path
 
+ENV = os.environ.get('SCAN_ENV', 'vulnerable')
+
 findings = []
 
-tfsec_path = Path('scans/tfsec/output/vulnerable.json')
+tfsec_path = Path(f'scans/tfsec/output/{ENV}.json')
 if tfsec_path.exists():
     for r in json.loads(tfsec_path.read_text()).get('results') or []:
         findings.append({
