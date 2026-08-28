@@ -10,8 +10,8 @@ classified BLOCK, WARN, IGNORE, or DECIDE.
 
 **Status:** All 40 rules classified. Four judgment calls settled: ingress blocks
 while egress warns (unrestricted egress is the AWS default; blocking it would fail
-every PR and get the gate disabled); one IAM check blocks while the redundant seven
-warn; customer-managed KMS keys warn (cost/compliance decision, not a
+every PR and get the gate disabled); three IAM checks block (full admin, privilege escalation, permissions
+management) while the redundant five warn; customer-managed KMS keys warn (cost/compliance decision, not a
 security-vs-insecurity one); access logging warns (detection, not prevention).
 
 | Tool | Rule ID | Severity | Description | Class | Rationale |
@@ -64,7 +64,7 @@ security-vs-insecurity one); access logging warns (detection, not prevention).
 - Checkov failed checks: 27 (27 unique rules)
 - Total findings: 42
 - Findings per planted flaw: 10.5
-- Blocking categories: 4 (17 rule IDs)
+- Blocking categories: 5 (19 rule IDs)
 - Rows pending decision: 0
 - Confirmed false positives: 1 (tfsec aws-s3-enable-bucket-encryption - stale vs AWS SSE-S3 default, Jan 2023)
 - Vacuous passes identified: 3 (CKV2_AWS_2, CKV_AWS_20, CKV_AWS_57)
