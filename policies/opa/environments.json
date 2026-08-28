@@ -1,0 +1,16 @@
+{
+  "environments": {
+    "prod": {
+      "enforce": ["public_exposure", "unencrypted_storage", "iam_privilege", "open_admin_port"],
+      "warn": ["cmk_required", "access_logging", "unrestricted_egress"]
+    },
+    "dev": {
+      "enforce": ["public_exposure", "iam_privilege"],
+      "warn": ["unencrypted_storage", "open_admin_port", "cmk_required", "access_logging", "unrestricted_egress"]
+    },
+    "vulnerable": {
+      "enforce": [],
+      "warn": ["public_exposure", "unencrypted_storage", "iam_privilege", "open_admin_port", "cmk_required", "access_logging", "unrestricted_egress"]
+    }
+  }
+}
