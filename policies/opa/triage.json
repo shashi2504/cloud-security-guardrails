@@ -1,0 +1,284 @@
+{
+  "triage": {
+    "CKV2_AWS_40": {
+      "class": "WARN",
+      "description": "Ensure AWS IAM policy does not allow full IAM privileges",
+      "rationale": "One of 8 IAM checks on one wildcard. All BLOCK, or 1 BLOCK + 7 WARN?",
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV2_AWS_5": {
+      "class": "IGNORE",
+      "description": "Ensure that Security Groups are attached to another resource",
+      "rationale": "Test-environment artifact: no EC2 by design. Unattached SG has no attack surface.",
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV2_AWS_6": {
+      "class": "BLOCK",
+      "description": "Ensure that S3 bucket has a Public Access block",
+      "rationale": null,
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV2_AWS_61": {
+      "class": "IGNORE",
+      "description": "Ensure that an S3 bucket has a lifecycle configuration",
+      "rationale": "Cost management control, not security.",
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV2_AWS_62": {
+      "class": "IGNORE",
+      "description": "Ensure S3 buckets should have event notifications enabled",
+      "rationale": "Operational integration, not security.",
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_144": {
+      "class": "IGNORE",
+      "description": "Ensure that S3 bucket has cross-region replication enabled",
+      "rationale": "Availability/DR control, not security. Real cost, no confidentiality benefit.",
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_145": {
+      "class": "WARN",
+      "description": "Ensure that S3 buckets are encrypted with KMS by default",
+      "rationale": "CMK cost call \u2014 must match tfsec CMK rules.",
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_18": {
+      "class": "WARN",
+      "description": "Ensure the S3 bucket has access logging enabled",
+      "rationale": "Same call as tfsec logging rule \u2014 must match.",
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_189": {
+      "class": "WARN",
+      "description": "Ensure EBS Volume is encrypted by KMS using a customer managed Key (CMK)",
+      "rationale": "CMK cost call \u2014 must match tfsec CMK rules.",
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_21": {
+      "class": "WARN",
+      "description": "Ensure all data stored in the S3 bucket have versioning enabled",
+      "rationale": null,
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_24": {
+      "class": "BLOCK",
+      "description": "Ensure no security groups allow ingress from 0.0.0.0:0 to port 22",
+      "rationale": null,
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_25": {
+      "class": "BLOCK",
+      "description": "Ensure no security groups allow ingress from 0.0.0.0:0 to port 3389",
+      "rationale": null,
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_286": {
+      "class": "BLOCK",
+      "description": "Ensure IAM policies does not allow privilege escalation",
+      "rationale": "One of 8 IAM checks on one wildcard. All BLOCK, or 1 BLOCK + 7 WARN?",
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_287": {
+      "class": "WARN",
+      "description": "Ensure IAM policies does not allow credentials exposure",
+      "rationale": "One of 8 IAM checks on one wildcard. All BLOCK, or 1 BLOCK + 7 WARN?",
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_288": {
+      "class": "WARN",
+      "description": "Ensure IAM policies does not allow data exfiltration",
+      "rationale": "One of 8 IAM checks on one wildcard. All BLOCK, or 1 BLOCK + 7 WARN?",
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_289": {
+      "class": "BLOCK",
+      "description": "Ensure IAM policies does not allow permissions management / resource exposure without constraints",
+      "rationale": "One of 8 IAM checks on one wildcard. All BLOCK, or 1 BLOCK + 7 WARN?",
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_290": {
+      "class": "WARN",
+      "description": "Ensure IAM policies does not allow write access without constraints",
+      "rationale": "One of 8 IAM checks on one wildcard. All BLOCK, or 1 BLOCK + 7 WARN?",
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_3": {
+      "class": "BLOCK",
+      "description": "Ensure all data stored in the EBS is securely encrypted",
+      "rationale": null,
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_355": {
+      "class": "WARN",
+      "description": "Ensure no IAM policies documents allow \"*\" as a statement's resource for restrictable actions",
+      "rationale": "One of 8 IAM checks on one wildcard. All BLOCK, or 1 BLOCK + 7 WARN?",
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_382": {
+      "class": "WARN",
+      "description": "Ensure no security groups allow egress from 0.0.0.0:0 to port -1",
+      "rationale": "Same call as tfsec egress rule \u2014 must match.",
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_53": {
+      "class": "BLOCK",
+      "description": "Ensure S3 bucket has block public ACLS enabled",
+      "rationale": null,
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_54": {
+      "class": "BLOCK",
+      "description": "Ensure S3 bucket has block public policy enabled",
+      "rationale": null,
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_55": {
+      "class": "BLOCK",
+      "description": "Ensure S3 bucket has ignore public ACLs enabled",
+      "rationale": null,
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_56": {
+      "class": "BLOCK",
+      "description": "Ensure S3 bucket has 'restrict_public_buckets' enabled",
+      "rationale": null,
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_62": {
+      "class": "BLOCK",
+      "description": "Ensure IAM policies that allow full \"*-*\" administrative privileges are not created",
+      "rationale": null,
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_63": {
+      "class": "WARN",
+      "description": "Ensure no IAM policies documents allow \"*\" as a statement's actions",
+      "rationale": "One of 8 IAM checks on one wildcard. All BLOCK, or 1 BLOCK + 7 WARN?",
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_70": {
+      "class": "BLOCK",
+      "description": "Ensure S3 bucket does not allow an action with any Principal",
+      "rationale": null,
+      "severity": null,
+      "tool": "checkov"
+    },
+    "aws-ec2-enable-volume-encryption": {
+      "class": "BLOCK",
+      "description": "EBS volumes must be encrypted",
+      "rationale": null,
+      "severity": "HIGH",
+      "tool": "tfsec"
+    },
+    "aws-ec2-no-public-egress-sgr": {
+      "class": "WARN",
+      "description": "An egress security group rule allows traffic to /0.",
+      "rationale": "CRITICAL per tfsec vs AWS default. Blocks exfil/C2 but may make gate unusable.",
+      "severity": "CRITICAL",
+      "tool": "tfsec"
+    },
+    "aws-ec2-no-public-ingress-sgr": {
+      "class": "BLOCK",
+      "description": "An ingress security group rule allows traffic from /0.",
+      "rationale": null,
+      "severity": "CRITICAL",
+      "tool": "tfsec"
+    },
+    "aws-ec2-volume-encryption-customer-key": {
+      "class": "WARN",
+      "description": "EBS volume encryption should use Customer Managed Keys",
+      "rationale": "CMK at $1/key/mo \u2014 security requirement or cost decision?",
+      "severity": "LOW",
+      "tool": "tfsec"
+    },
+    "aws-iam-no-policy-wildcards": {
+      "class": "BLOCK",
+      "description": "IAM policy should avoid use of wildcards and instead apply the principle of least privilege",
+      "rationale": null,
+      "severity": "HIGH",
+      "tool": "tfsec"
+    },
+    "aws-s3-block-public-acls": {
+      "class": "BLOCK",
+      "description": "S3 Access block should block public ACL",
+      "rationale": null,
+      "severity": "HIGH",
+      "tool": "tfsec"
+    },
+    "aws-s3-block-public-policy": {
+      "class": "BLOCK",
+      "description": "S3 Access block should block public policy",
+      "rationale": null,
+      "severity": "HIGH",
+      "tool": "tfsec"
+    },
+    "aws-s3-enable-bucket-encryption": {
+      "class": "IGNORE",
+      "description": "Unencrypted S3 bucket.",
+      "rationale": "Stale rule: AWS applies SSE-S3 by default since Jan 2023. Checkov CKV_AWS_19 passes.",
+      "severity": "HIGH",
+      "tool": "tfsec"
+    },
+    "aws-s3-enable-bucket-logging": {
+      "class": "WARN",
+      "description": "S3 Bucket does not have logging enabled.",
+      "rationale": "Only way to know a public bucket was read. Exposure-adjacent?",
+      "severity": "MEDIUM",
+      "tool": "tfsec"
+    },
+    "aws-s3-enable-versioning": {
+      "class": "WARN",
+      "description": "S3 Data should be versioned",
+      "rationale": null,
+      "severity": "MEDIUM",
+      "tool": "tfsec"
+    },
+    "aws-s3-encryption-customer-key": {
+      "class": "WARN",
+      "description": "S3 encryption should use Customer Managed Keys",
+      "rationale": "CMK at $1/key/mo \u2014 security requirement or cost decision?",
+      "severity": "HIGH",
+      "tool": "tfsec"
+    },
+    "aws-s3-ignore-public-acls": {
+      "class": "BLOCK",
+      "description": "S3 Access Block should Ignore Public Acl",
+      "rationale": null,
+      "severity": "HIGH",
+      "tool": "tfsec"
+    },
+    "aws-s3-no-public-buckets": {
+      "class": "BLOCK",
+      "description": "S3 Access block should restrict public bucket to limit access",
+      "rationale": null,
+      "severity": "HIGH",
+      "tool": "tfsec"
+    }
+  }
+}

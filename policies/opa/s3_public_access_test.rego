@@ -53,3 +53,13 @@ test_tag_does_not_leak_across_buckets if {
 		bucket("site-bucket", {"PublicAccess": "intentional"}),
 	])
 }
+
+test_denies_bucket_with_no_pab if {
+	count(s3.deny) == 1 with input as plan([bucket("orphan-bucket", {})])
+}
+
+test_allows_tagged_bucket_with_no_pab if {
+	count(s3.deny) == 0 with input as plan([
+		bucket("site-bucket", {"PublicAccess": "intentional"}),
+	])
+}

@@ -42,3 +42,26 @@ deny contains msg if {
 		[pab.address, pab.values.bucket],
 	)
 }
+
+# A bucket with no public access block at all is as exposed as one with a
+# weak block — arguably more so, since nothing declares intent. Iterating
+# PAB resources alone misses this: no resource, no iteration, no finding.
+
+bucket_names contains name if {
+	some r in resources
+	r.type == "aws_s3_bucket"
+	name := r.values.bucket
+}
+
+buckets_with_pab contains name if {
+	some pab in resources
+	pab.type == "aws_s3_bucket_public_access_block"
+	name := pab.values.bucket
+}
+
+deny contains msg if {
+	some name in bucket_names
+	not name in buckets_with_pab
+	not name in intentional_buckets
+	msg := sprintf("bucket %q has no aws_s3_bucket_public_access_block", [name])
+}
