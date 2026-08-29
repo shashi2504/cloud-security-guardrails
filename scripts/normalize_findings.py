@@ -36,6 +36,19 @@ if ck_path.exists():
             "severity": c.get('severity') or '',
         })
 
+prowler_path = Path(f'scans/prowler/output/{ENV}-scan.ocsf.json')
+if prowler_path.exists():
+    for f in json.loads(prowler_path.read_text()):
+        if f.get('status_code') != 'FAIL':
+            continue
+        findings.append({
+            "tool": "prowler",
+            "rule_id": f['metadata']['event_code'],
+            "message": f.get('status_detail') or f.get('finding_info', {}).get('desc', ''),
+            "resource": (f.get('resources') or [{}])[0].get('uid', ''),
+            "severity": f.get('severity', ''),
+        })
+
 out = {"findings": findings}
 json.dump(out, sys.stdout, indent=2)
 print(f"\n{len(findings)} findings normalized", file=sys.stderr)

@@ -1,0 +1,10 @@
+# prowler-audit user: SecurityAudit + ViewOnlyAccess + scoped read additions
+# Write attempt denied — CSPM scanning runs without any mutation capability.
+
+$ aws sts get-caller-identity --profile prowler
+  Arn: arn:aws:iam::880636108185:user/prowler-audit
+
+$ aws s3api create-bucket --bucket csg-should-fail-... --profile prowler
+  AccessDenied: User arn:aws:iam::880636108185:user/prowler-audit is not
+  authorized to perform: s3:CreateBucket ... because no identity-based
+  policy allows the s3:CreateBucket action
