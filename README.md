@@ -33,10 +33,12 @@ Two findings from building it:
 | Component | Status |
 |---|---|
 | IaC scanning (tfsec, Checkov) in GitHub Actions | Working |
-| Triage table — 40 rules, 19 BLOCK / 16 WARN / 5 IGNORE | Working |
+| Triage table — 48 rules, 19 BLOCK / 21 WARN / 8 IGNORE | Working |
 | Triage table executable as OPA data, drift-checked in CI | Working |
 | Deliberately vulnerable environment as a detection regression test | Working |
-| OPA policy unit tests (16) | Working |
+| OPA policy unit tests (24) | Working |
+| Secure landing zone: segmented VPC, KMS CMK with rotation, KMS-encrypted CloudTrail | Working |
+| Prowler CSPM scanning with CI-actionable vs account-posture split | Working |
 | Terraform remote state, S3 backend with native locking | Working |
 | Conditional S3 public-access policy (`PublicAccess=intentional`) | Written and tested, not yet in CI |
 | Environment-aware severity gating | Written and tested, not yet in CI |
@@ -47,7 +49,7 @@ role exists for it.
 
 ## What is not built
 
-Prowler CSPM scanning, Grafana dashboards, SNS/Slack alerting, and Lambda
+Grafana dashboards, SNS/Slack alerting, a security score, and Lambda
 auto-remediation are described in [`docs/blueprint.md`](docs/blueprint.md)
 but not implemented.
 
@@ -74,6 +76,27 @@ The `vulnerable` environment runs on every pull request with an inverted
 assertion: **zero blocking findings is a failure.** If a scanner upgrade or
 an over-broad triage entry breaks detection, CI goes red. Most security
 pipelines only prove they can pass; this one also proves it can still catch.
+
+## Landing zone
+
+The `dev` environment provisions the infrastructure the gate protects, and
+passes that gate with zero blocking findings:
+
+- **VPC** — public and private subnets across two AZs, no NAT gateway (~$32/mo
+  and unnecessary here), S3 gateway endpoint for private-subnet S3 access,
+  default security group adopted and stripped of all rules, flow logs to a
+  KMS-encrypted CloudWatch group.
+- **KMS** — one customer-managed key with annual rotation. Key policy scopes
+  service grants with encryption-context conditions rather than granting the
+  CloudWatch Logs and CloudTrail services blanket use of the key.
+- **CloudTrail** — multi-region trail with log file validation, writing to a
+  versioned, KMS-encrypted S3 bucket. The bucket policy denies all access over
+  plain HTTP and scopes CloudTrail's write permission to this trail's ARN.
+- **IAM** — least-privilege role for flow log delivery; a separate read-only
+  user (`SecurityAudit` + `ViewOnlyAccess`) for Prowler, verified unable to
+  write.
+
+Running cost is roughly $2/month.
 
 ## Architecture
 
