@@ -75,6 +75,7 @@ account score is `null` rather than 100 when no CSPM scan is present.
 | Secure landing zone: segmented VPC, KMS CMK with rotation, KMS-encrypted CloudTrail | Working |
 | Prowler CSPM scanning with CI-actionable vs account-posture split | Working |
 | Deduplicated security scoring, separate code and account posture scores | Working |
+| Auto-remediation Lambda, dry-run by default, tag-gated | Working |
 | Terraform remote state, S3 backend with native locking | Working |
 | Conditional S3 public-access policy (`PublicAccess=intentional`) | Written and tested, not yet in CI |
 | Environment-aware severity gating | Written and tested, not yet in CI |
@@ -85,8 +86,7 @@ role exists for it.
 
 ## What is not built
 
-Grafana dashboards, SNS/Slack alerting, and Lambda auto-remediation are
-described in [`docs/blueprint.md`](docs/blueprint.md)
+Grafana dashboards and SNS/Slack alerting are described in [`docs/blueprint.md`](docs/blueprint.md)
 but not implemented.
 
 ## Evidence
@@ -175,6 +175,28 @@ disagree with enforcement is worse than no documentation.
 denied. Neither scanner can express "unless", so in practice teams
 blanket-suppress the rule and lose the signal entirely. This keeps the
 detection and makes the exception auditable.
+
+**Remediation is tag-gated and dry-run by default.** The Lambda refuses to
+act on any resource without `AutoRemediate=enabled` and
+`Project=cloud-security-guardrails`. For security groups that gate is
+enforced twice — in the handler and as an IAM condition on the role — so a
+bug in the Python cannot revoke a rule AWS has not already authorised. S3
+does not support tag conditions on `PutBucketPublicAccessBlock`, so for
+buckets the handler check is the only control, which is worth knowing rather
+than assuming symmetry.
+
+Enforcement is opt-in (`ENFORCE=false` by default). A verified run is
+recorded in
+[`docs/evidence/remediation-enforcement.txt`](docs/evidence/remediation-enforcement.txt):
+the tagged-enabled group had ports 22 and 3389 revoked, the tagged-disabled
+group was skipped with the reason logged.
+
+**Remediation fixes the resource, not the code.** The evidence file ends with
+a `terraform plan` showing Terraform wanting to restore the rules the Lambda
+removed. Remediated resources are tagged `RemediatedAt`/`RemediatedBy` so the
+drift is visible rather than silent. The blueprint's "snapshot and re-encrypt
+the EBS volume" flow is deliberately not implemented: it requires stopping
+the instance, which is an outage rather than a remediation.
 
 ## Repository layout
 

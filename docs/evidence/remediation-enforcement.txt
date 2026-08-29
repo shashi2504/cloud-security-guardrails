@@ -51,3 +51,36 @@
 |  RemediatedAt |  2026-08-29T05:49:09+00:00  |
 |  RemediatedBy |  csg-auto-remediation       |
 +---------------+-----------------------------+
+
+## Drift after remediation
+
+The Lambda fixed the live resource. The Terraform still declares the
+insecure state, so the next apply reintroduces it. Auto-remediation
+buys time; it does not fix the code.
+
+  # aws_security_group.wide_open will be updated in-place
+  ~ resource "aws_security_group" "wide_open" {
+        id                     = "sg-0d4905bd651ef8350"
+      ~ ingress                = [
+          + {
+              + cidr_blocks      = [
+                  + "0.0.0.0/0",
+                ]
+              + description      = "RDP from anywhere"
+              + from_port        = 3389
+              + ipv6_cidr_blocks = []
+              + prefix_list_ids  = []
+              + protocol         = "tcp"
+              + security_groups  = []
+              + self             = false
+              + to_port          = 3389
+            },
+          + {
+              + cidr_blocks      = [
+                  + "0.0.0.0/0",
+                ]
+              + description      = "SSH from anywhere"
+              + from_port        = 22
+              + ipv6_cidr_blocks = []
+              + prefix_list_ids  = []
+              + protocol         = "tcp"
