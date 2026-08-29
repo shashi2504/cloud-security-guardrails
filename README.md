@@ -77,12 +77,21 @@ account score is `null` rather than 100 when no CSPM scan is present.
 | Deduplicated security scoring, separate code and account posture scores | Working |
 | Auto-remediation Lambda, dry-run by default, tag-gated | Working |
 | Terraform remote state, S3 backend with native locking | Working |
-| Conditional S3 public-access policy (`PublicAccess=intentional`) | Written and tested, not yet in CI |
+| Conditional S3 public-access policy (`PublicAccess=intentional`) | Working — evaluates plan JSON in CI |
+| OIDC deploy pipeline: plan, policy evaluation, apply on main | Working |
 | Environment-aware severity gating | Written and tested, not yet in CI |
 
-The two plan-based policies need `terraform plan` output, which requires AWS
-credentials in Actions. That is deliberately unwired until a read-only IAM
-role exists for it.
+GitHub Actions authenticates to AWS via OIDC — no stored access keys. Two
+roles with different trust conditions: a read-only plan role assumable from
+pull requests, and an apply role whose trust policy matches only
+`refs/heads/main` including GitHub's immutable repo ID, so a pull request
+(including one from a fork) cannot obtain write credentials.
+
+Roles the pipeline creates must carry a permissions boundary that denies all
+IAM actions, closing the escalation path where a deployment role creates an
+admin role and passes it to a function. The plan job runs with `-lock=false`
+rather than being granted write access to the state bucket: whoever can
+overwrite state controls what the next apply creates or destroys.
 
 ## What is not built
 
