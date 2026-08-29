@@ -1,0 +1,24 @@
+# Local Grafana reading the security score metrics the CSPM workflow emits.
+#
+# Credentials come from the host's AWS profile mounted read-only rather than
+# from environment variables in this file — nothing here is a secret, and
+# the compose file is committed.
+services:
+  grafana:
+    image: grafana/grafana:11.3.0
+    container_name: csg-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?set GRAFANA_PASSWORD}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      AWS_SDK_LOAD_CONFIG: "true"
+      AWS_PROFILE: default
+    volumes:
+      - ./provisioning:/etc/grafana/provisioning:ro
+      - ~/.aws:/usr/share/grafana/.aws:ro
+      - grafana-data:/var/lib/grafana
+
+volumes:
+  grafana-data:
