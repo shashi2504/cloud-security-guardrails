@@ -33,3 +33,7 @@ output "gha_apply_role_arn" {
 output "alert_topic_arn" {
   value = module.alerting.topic_arn
 }
+
+output "gha_prowler_role_arn" {
+  value = module.github_oidc.prowler_role_arn
+}

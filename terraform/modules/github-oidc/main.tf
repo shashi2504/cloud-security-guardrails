@@ -280,3 +280,60 @@ resource "aws_iam_role_policy" "apply" {
     ]
   })
 }
+
+# Prowler's scan role. Replaces the prowler-audit IAM user and its
+# long-lived key: the scheduled workflow assumes this instead, so there is
+# no stored credential for the CSPM scanner either.
+resource "aws_iam_role" "prowler" {
+  name               = "${var.name_prefix}-prowler"
+  assume_role_policy = data.aws_iam_policy_document.assume_plan.json
+}
+
+resource "aws_iam_role_policy_attachment" "prowler_security_audit" {
+  role       = aws_iam_role.prowler.name
+  policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/SecurityAudit"
+}
+
+resource "aws_iam_role_policy_attachment" "prowler_view_only" {
+  role       = aws_iam_role.prowler.name
+  policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/job-function/ViewOnlyAccess"
+}
+
+# Reads Prowler needs beyond the two managed policies.
+#
+# Resource: "*" is unavoidable here — these actions operate on the account
+# itself, not on a resource ARN, so there is nothing narrower to scope to.
+#
+# This is an accepted risk rather than a scanner error. The role holds
+# SecurityAudit and ViewOnlyAccess, so it can enumerate every resource and
+# policy in the account: real reconnaissance value if the trust policy were
+# ever widened. It is accepted because a CSPM tool requires account-wide
+# read by definition, the role holds no write permission (verified: a
+# CreateBucket attempt returns AccessDenied), and assumption is limited to
+# workflows in this repository.
+#tfsec:ignore:aws-iam-no-policy-wildcards
+resource "aws_iam_role_policy" "prowler_extra" {
+  name = "${var.name_prefix}-prowler-extra"
+  role = aws_iam_role.prowler.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid      = "PublishFindings"
+      Effect   = "Allow"
+      Action   = ["sns:Publish", "kms:GenerateDataKey", "kms:Decrypt"]
+      Resource = "*"
+      }, {
+      Effect = "Allow"
+      Action = [
+        "account:Get*",
+        "ec2:GetEbsEncryptionByDefault",
+        "s3:GetAccountPublicAccessBlock",
+        "shield:GetSubscriptionState",
+        "support:Describe*",
+        "tag:GetTagKeys",
+      ]
+      Resource = "*"
+    }]
+  })
+}

@@ -72,6 +72,19 @@ security-vs-insecurity one); access logging warns (detection, not prevention).
 | checkov | CKV_AWS_50 |  | X-Ray tracing is enabled for Lambda | IGNORE | Observability, not a security control. |
 | tfsec | aws-lambda-enable-tracing | LOW | Lambda functions should have X-Ray tracing enabled | IGNORE | Same as CKV_AWS_50 — classification must match. |
 
+## Accepted risks
+
+Distinct from the false positives above: these findings are correct and the
+risk is accepted with a stated reason.
+
+- **tfsec aws-iam-no-policy-wildcards on the Prowler scan role.** The role
+  holds SecurityAudit and ViewOnlyAccess, giving account-wide read — real
+  reconnaissance value. Accepted because CSPM requires it by definition, the
+  role has no write permission (verified by a denied CreateBucket), and its
+  trust policy limits assumption to workflows in this repository. The
+  supplementary actions cannot be resource-scoped: they operate on the
+  account rather than on an ARN.
+
 ## Baseline scan results (vulnerable environment)
 
 - Intentional flaws planted: 4

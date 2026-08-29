@@ -1,0 +1,111 @@
+name: CSPM Scan
+
+# Prowler audits the live account on a schedule. The IaC gate only sees code;
+# this catches drift, console changes, and account-level settings no pull
+# request touches.
+on:
+  schedule:
+    - cron: '0 2 * * *'   # 02:00 UTC daily
+  workflow_dispatch:       # manual trigger for demos
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-south-1
+  SNS_TOPIC: arn:aws:sns:ap-south-1:880636108185:csg-security-alerts
+
+jobs:
+  scan:
+    name: Prowler scan and classify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::880636108185:role/csg-gha-prowler
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Confirm assumed identity is read-only
+        run: |
+          aws sts get-caller-identity
+          # A write must fail. If this succeeds the scan role has been
+          # over-permissioned and the job should not continue.
+          if aws s3api create-bucket --bucket csg-cspm-writecheck-$RANDOM \
+               --region ${{ env.AWS_REGION }} \
+               --create-bucket-configuration LocationConstraint=${{ env.AWS_REGION }} 2>/dev/null; then
+            echo "FAIL: scan role can write. Aborting."
+            exit 1
+          fi
+          echo "OK: scan role is read-only"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Prowler and OPA
+        run: |
+          pip install prowler
+          curl -sSL -o /usr/local/bin/opa \
+            https://github.com/open-policy-agent/opa/releases/download/v1.20.1/opa_linux_amd64_static
+          chmod +x /usr/local/bin/opa
+
+      - name: Run Prowler
+        run: |
+          mkdir -p scans/prowler/output
+          # Scoped to the services this project deploys. A full scan takes
+          # 20+ minutes and produces findings for services in use nowhere.
+          prowler aws \
+            --region ${{ env.AWS_REGION }} \
+            --service s3 ec2 iam kms cloudtrail \
+            --output-formats json-ocsf \
+            --output-directory scans/prowler/output \
+            --output-filename dev-scan \
+            || true   # non-zero exit means findings, not failure
+
+      - name: Classify findings
+        id: classify
+        run: |
+          ls scans/prowler/output/
+          SCAN_ENV=dev ./scripts/normalize_findings.py > findings.json
+
+          echo "--- classification ---"
+          opa eval --format pretty \
+            --data policies/opa/prowler_triage.rego \
+            --data policies/opa/prowler_scope.rego \
+            --input findings.json 'data.guardrails.prowler.summary' | tee summary.txt
+
+          echo "--- score ---"
+          opa eval --format pretty \
+            --data policies/opa/score.rego \
+            --data policies/opa/prowler_scope.rego \
+            --data policies/opa/triage.json \
+            --data policies/opa/conditions.json \
+            --input findings.json 'data.guardrails.score.report' | tee score.txt
+
+          BLOCKING=$(opa eval --format raw \
+            --data policies/opa/prowler_triage.rego \
+            --data policies/opa/prowler_scope.rego \
+            --input findings.json 'count(data.guardrails.prowler.blocking)')
+          echo "blocking=$BLOCKING" >> "$GITHUB_OUTPUT"
+
+      - name: Publish findings to SNS
+        if: steps.classify.outputs.blocking != '0'
+        run: |
+          BODY=$(printf 'Prowler scan found %s blocking finding(s).\n\n%s\n\n%s\n' \
+            "${{ steps.classify.outputs.blocking }}" "$(cat summary.txt)" "$(cat score.txt)")
+          aws sns publish \
+            --topic-arn "$SNS_TOPIC" \
+            --subject "[csg] CSPM scan: ${{ steps.classify.outputs.blocking }} blocking findings" \
+            --message "$BODY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: prowler-scan
+          path: |
+            scans/prowler/output/
+            findings.json
+          retention-days: 7
