@@ -70,5 +70,14 @@ security-vs-insecurity one); access logging warns (detection, not prevention).
 - Findings per planted flaw: 10.5
 - Blocking categories: 5 (19 rule IDs)
 - Rows pending decision: 0
-- Confirmed false positives: 1 (tfsec aws-s3-enable-bucket-encryption - stale vs AWS SSE-S3 default, Jan 2023)
+- Confirmed false positives: 3, each a distinct failure mode:
+  1. tfsec aws-s3-enable-bucket-encryption - stale rule; AWS applies SSE-S3 by
+     default since Jan 2023. Checkov CKV_AWS_19 passes the same bucket.
+  2. Checkov CKV_AWS_109/111/356 - generic IAM checks applied to a KMS resource
+     policy. Checkov's own KMS-aware CKV_AWS_33 passes the same statement, so
+     the tool contradicts itself on one resource.
+  3. tfsec aws-iam-no-policy-wildcards - matches any "*" in a Resource string
+     without parsing which ARN segment it falls in. Fires on
+     "<log-group-arn>:*", where the wildcard is confined to the log-stream
+     segment of a single log group.
 - Vacuous passes identified: 3 (CKV2_AWS_2, CKV_AWS_20, CKV_AWS_57)
