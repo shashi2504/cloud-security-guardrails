@@ -1,8 +1,13 @@
 # Local Grafana reading the security score metrics the CSPM workflow emits.
 #
-# Credentials come from the host's AWS profile mounted read-only rather than
-# from environment variables in this file — nothing here is a secret, and
-# the compose file is committed.
+# Credentials are read from the shell environment, not from this file and
+# not from a mounted ~/.aws: the container runs as uid 472 and cannot read
+# a credentials file owned by the host user. Export them first:
+#
+#   export $(aws configure export-credentials --format env-no-export | xargs)
+#
+# This puts the host's credentials in a container environment, which is
+# acceptable for a local demo and not for anything shared.
 services:
   grafana:
     image: grafana/grafana:11.3.0
@@ -13,11 +18,14 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?set GRAFANA_PASSWORD}
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_USERS_ALLOW_SIGN_UP: "false"
-      AWS_SDK_LOAD_CONFIG: "true"
-      AWS_PROFILE: default
+      # Credentials come from the host shell, not from this file and not
+      # from a mounted directory: the Grafana container runs as uid 472 and
+      # cannot read a credentials file owned by the host user.
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?AWS credentials not exported - see README}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?AWS credentials not exported}
+      AWS_DEFAULT_REGION: ap-south-1
     volumes:
       - ./provisioning:/etc/grafana/provisioning:ro
-      - ~/.aws:/usr/share/grafana/.aws:ro
       - grafana-data:/var/lib/grafana
 
 volumes:

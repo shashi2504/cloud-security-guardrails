@@ -4,6 +4,6 @@ datasources:
   - name: CloudWatch
     type: cloudwatch
     jsonData:
-      authType: default        # resolves via the mounted ~/.aws profile
+      authType: keys        # resolves via the mounted ~/.aws profile
       defaultRegion: ap-south-1
     editable: false
