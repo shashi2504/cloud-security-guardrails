@@ -88,6 +88,8 @@ resource "aws_vpc_endpoint" "s3" {
 
 data "aws_region" "current" {}
 
+data "aws_caller_identity" "current" {}
+
 # The default security group cannot be deleted, so it is emptied instead.
 # An unmanaged default SG is a common finding.
 resource "aws_default_security_group" "this" {
@@ -110,6 +112,15 @@ resource "aws_iam_role" "flow_logs" {
       Effect    = "Allow"
       Principal = { Service = "vpc-flow-logs.amazonaws.com" }
       Action    = "sts:AssumeRole"
+
+      # Without SourceAccount the flow-logs service could be induced to
+      # assume this role on behalf of another account's flow log. Confused
+      # deputy prevention.
+      Condition = {
+        StringEquals = {
+          "aws:SourceAccount" = data.aws_caller_identity.current.account_id
+        }
+      }
     }]
   })
 }

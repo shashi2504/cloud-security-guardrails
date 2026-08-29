@@ -35,6 +35,8 @@ blocking_checks := {
 
 # Tier 2 — families classified in bulk, with reasons.
 advisory_patterns := {
+	"kms_cmk_not_deleted_unintentionally": "Fires on any key pending deletion. Expected during rotation.",
+	"iam_inline_policy_no_full_access_to_cloudtrail": "The deployment role manages the account's only trail.",
 	"iam_password_policy_": "Password policy strength — real but not exposure; no blast radius today.",
 	"_backup_plan": "Availability control, not security.",
 	"_snapshots_exists": "Backup concern. Prowler rates High; disagreeing deliberately.",

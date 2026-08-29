@@ -85,6 +85,20 @@ risk is accepted with a stated reason.
   supplementary actions cannot be resource-scoped: they operate on the
   account rather than on an ARN.
 
+- **Prowler iam_inline_policy_allows_privilege_escalation on csg-gha-apply.**
+  The deployment role holds ec2:RunInstances and iam:PassRole, which is a
+  documented escalation path if a privileged instance profile exists. No
+  boundary is attached to the role itself: a boundary permitting everything
+  the landing zone deploys would mirror the role's own policy and constrain
+  nothing. Accepted because the trust policy admits only pushes to main in
+  one repository, an explicit Deny blocks IAM user and access key creation,
+  roles the pipeline creates carry a boundary denying all IAM actions, and
+  no privileged instance profile exists to pass.
+
+- **Prowler kms_cmk_not_deleted_unintentionally.** Fires on any key in its
+  deletion window. Expected during key rotation; classified WARN rather than
+  suppressed so a genuinely unintended deletion is still reported.
+
 ## Baseline scan results (vulnerable environment)
 
 - Intentional flaws planted: 4

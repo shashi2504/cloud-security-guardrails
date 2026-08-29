@@ -28,6 +28,14 @@ resource "aws_iam_role" "this" {
       Effect    = "Allow"
       Principal = { Service = "lambda.amazonaws.com" }
       Action    = "sts:AssumeRole"
+
+      # Confused deputy prevention: scope the service principal to this
+      # account so another account's Lambda cannot assume this role.
+      Condition = {
+        StringEquals = {
+          "aws:SourceAccount" = data.aws_caller_identity.current.account_id
+        }
+      }
     }]
   })
 }
