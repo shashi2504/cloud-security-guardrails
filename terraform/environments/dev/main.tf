@@ -17,3 +17,11 @@ module "vpc" {
   availability_zones = slice(data.aws_availability_zones.available.names, 0, 2)
   kms_key_arn        = module.kms.key_arn
 }
+
+module "logging" {
+  source = "../../modules/logging"
+
+  name        = "csg-dev"
+  trail_name  = "csg-dev-trail"
+  kms_key_arn = module.kms.key_arn
+}

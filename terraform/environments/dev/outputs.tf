@@ -13,3 +13,11 @@ output "public_subnet_ids" {
 output "kms_key_arn" {
   value = module.kms.key_arn
 }
+
+output "cloudtrail_bucket" {
+  value = module.logging.bucket_name
+}
+
+output "cloudtrail_arn" {
+  value = module.logging.trail_arn
+}

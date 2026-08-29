@@ -1,5 +1,12 @@
 {
   "triage": {
+    "CKV2_AWS_10": {
+      "class": "WARN",
+      "description": "Ensure CloudTrail trails are integrated with CloudWatch Logs",
+      "rationale": "Real gap: enables metric filters and alarms on trail events. Deferred with the alerting module.",
+      "severity": null,
+      "tool": "checkov"
+    },
     "CKV2_AWS_40": {
       "class": "WARN",
       "description": "Ensure AWS IAM policy does not allow full IAM privileges",
@@ -98,6 +105,13 @@
       "severity": null,
       "tool": "checkov"
     },
+    "CKV_AWS_252": {
+      "class": "WARN",
+      "description": "Ensure CloudTrail defines an SNS Topic",
+      "rationale": "Notification, not prevention. Deferred with the alerting module.",
+      "severity": null,
+      "tool": "checkov"
+    },
     "CKV_AWS_286": {
       "class": "BLOCK",
       "description": "Ensure IAM policies does not allow privilege escalation",
@@ -137,6 +151,13 @@
       "class": "BLOCK",
       "description": "Ensure all data stored in the EBS is securely encrypted",
       "rationale": null,
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_300": {
+      "class": "WARN",
+      "description": "Ensure S3 lifecycle configuration sets period for aborting failed uploads",
+      "rationale": "Fixed in the logging module; kept as WARN so a regression is reported.",
       "severity": null,
       "tool": "checkov"
     },
@@ -216,6 +237,13 @@
       "rationale": null,
       "severity": null,
       "tool": "checkov"
+    },
+    "aws-cloudtrail-ensure-cloudwatch-integration": {
+      "class": "WARN",
+      "description": "CloudTrail logs should be stored in CloudWatch",
+      "rationale": "Same finding as CKV2_AWS_10 \u2014 classification must match.",
+      "severity": "HIGH",
+      "tool": "tfsec"
     },
     "aws-ec2-enable-volume-encryption": {
       "class": "BLOCK",
