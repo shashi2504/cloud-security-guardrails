@@ -54,3 +54,103 @@ def tags_permit_remediation(tags: dict) -> tuple[bool, str]:
             return False, f"tag {key}={actual}, requires {expected}"
 
     return True, "all required tags present"
+
+
+def remediate_public_bucket(s3, bucket: str, tags: dict, enforce: bool) -> dict:
+    """Re-enable all four public access block settings on a bucket.
+
+    Reversible, no data loss, no downtime. The bucket stays readable to
+    anything with legitimate IAM permissions; only anonymous and
+    cross-account public access is closed.
+    """
+    permitted, reason = tags_permit_remediation(tags)
+    action = {
+        "action": "PutPublicAccessBlock",
+        "resource": bucket,
+        "params": {
+            "BlockPublicAcls": True,
+            "IgnorePublicAcls": True,
+            "BlockPublicPolicy": True,
+            "RestrictPublicBuckets": True,
+        },
+    }
+
+    if not permitted:
+        log.warning("SKIP %s: %s", bucket, reason)
+        return {**action, "status": "skipped", "reason": reason}
+
+    if not enforce:
+        log.info("DRY-RUN would call PutPublicAccessBlock on %s", bucket)
+        return {**action, "status": "dry-run", "reason": "ENFORCE is not true"}
+
+    s3.put_public_access_block(
+        Bucket=bucket,
+        PublicAccessBlockConfiguration=action["params"],
+    )
+    log.warning("REMEDIATED %s: public access blocked", bucket)
+    return {**action, "status": "remediated", "reason": reason}
+
+
+def open_admin_rules(permissions: list) -> list:
+    """Return only the ingress rules exposing 22 or 3389 to 0.0.0.0/0.
+
+    Revoking the whole group would remove legitimate rules alongside the
+    dangerous one, so each offending rule is revoked individually.
+    """
+    admin_ports = {22, 3389}
+    offending = []
+
+    for perm in permissions:
+        from_port = perm.get("FromPort")
+        to_port = perm.get("ToPort")
+        if from_port is None or to_port is None:
+            continue
+
+        exposed = [
+            r for r in perm.get("IpRanges", [])
+            if r.get("CidrIp") == "0.0.0.0/0"
+        ]
+        if not exposed:
+            continue
+
+        if any(from_port <= p <= to_port for p in admin_ports):
+            offending.append({
+                "IpProtocol": perm["IpProtocol"],
+                "FromPort": from_port,
+                "ToPort": to_port,
+                "IpRanges": exposed,
+            })
+
+    return offending
+
+
+def remediate_open_security_group(ec2, group_id: str, permissions: list,
+                                  tags: dict, enforce: bool) -> dict:
+    """Revoke 0.0.0.0/0 ingress on administrative ports only.
+
+    This does interrupt existing connections on those ports, which is why it
+    is tag-gated rather than applied account-wide.
+    """
+    permitted, reason = tags_permit_remediation(tags)
+    offending = open_admin_rules(permissions)
+
+    action = {
+        "action": "RevokeSecurityGroupIngress",
+        "resource": group_id,
+        "params": {"IpPermissions": offending},
+    }
+
+    if not offending:
+        return {**action, "status": "no-op", "reason": "no admin ports open to 0.0.0.0/0"}
+
+    if not permitted:
+        log.warning("SKIP %s: %s", group_id, reason)
+        return {**action, "status": "skipped", "reason": reason}
+
+    if not enforce:
+        log.info("DRY-RUN would revoke %d rule(s) on %s", len(offending), group_id)
+        return {**action, "status": "dry-run", "reason": "ENFORCE is not true"}
+
+    ec2.revoke_security_group_ingress(GroupId=group_id, IpPermissions=offending)
+    log.warning("REMEDIATED %s: revoked %d rule(s)", group_id, len(offending))
+    return {**action, "status": "remediated", "reason": reason}
