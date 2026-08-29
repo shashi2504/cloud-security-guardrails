@@ -35,6 +35,20 @@
       "severity": null,
       "tool": "checkov"
     },
+    "CKV_AWS_109": {
+      "class": "IGNORE",
+      "description": "Ensure IAM policies does not allow permissions management / resource exposure without constraints",
+      "rationale": "Same generic-vs-resource-policy blind spot as CKV_AWS_111.",
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_111": {
+      "class": "IGNORE",
+      "description": "Ensure IAM policies does not allow write access without constraints",
+      "rationale": "Generic IAM check on a KMS resource policy. CKV_AWS_33 (KMS-aware) passes the same statement.",
+      "severity": null,
+      "tool": "checkov"
+    },
     "CKV_AWS_144": {
       "class": "IGNORE",
       "description": "Ensure that S3 bucket has cross-region replication enabled",
@@ -126,10 +140,24 @@
       "severity": null,
       "tool": "checkov"
     },
+    "CKV_AWS_338": {
+      "class": "WARN",
+      "description": "Ensure CloudWatch log groups retains logs for at least 1 year",
+      "rationale": "Real finding. 1-day retention is a deliberate cost decision for a portfolio account.",
+      "severity": null,
+      "tool": "checkov"
+    },
     "CKV_AWS_355": {
       "class": "WARN",
       "description": "Ensure no IAM policies documents allow \"*\" as a statement's resource for restrictable actions",
       "rationale": "One of 8 IAM checks on one wildcard. All BLOCK, or 1 BLOCK + 7 WARN?",
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_356": {
+      "class": "IGNORE",
+      "description": "Ensure no IAM policies documents allow \"*\" as a statement's resource for restrictable actions",
+      "rationale": "Same generic-vs-resource-policy blind spot as CKV_AWS_111.",
       "severity": null,
       "tool": "checkov"
     },

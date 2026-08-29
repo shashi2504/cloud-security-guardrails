@@ -56,6 +56,10 @@ security-vs-insecurity one); access logging warns (detection, not prevention).
 | checkov | CKV_AWS_145 |  | Ensure that S3 buckets are encrypted with KMS by default | WARN | CMK cost call — must match tfsec CMK rules. |
 | checkov | CKV_AWS_21 |  | Ensure all data stored in the S3 bucket have versioning enabled | WARN |  |
 | checkov | CKV2_AWS_6 |  | Ensure that S3 bucket has a Public Access block | BLOCK |  |
+| checkov | CKV_AWS_111 |  | Ensure IAM policies does not allow write access without constraints | IGNORE | Generic IAM check on a KMS resource policy. CKV_AWS_33 (KMS-aware) passes the same statement. |
+| checkov | CKV_AWS_356 |  | Ensure no IAM policies documents allow "*" as a statement's resource for restrictable actions | IGNORE | Same generic-vs-resource-policy blind spot as CKV_AWS_111. |
+| checkov | CKV_AWS_109 |  | Ensure IAM policies does not allow permissions management / resource exposure without constraints | IGNORE | Same generic-vs-resource-policy blind spot as CKV_AWS_111. |
+| checkov | CKV_AWS_338 |  | Ensure CloudWatch log groups retains logs for at least 1 year | WARN | Real finding. 1-day retention is a deliberate cost decision for a portfolio account. |
 
 ## Baseline scan results (vulnerable environment)
 
