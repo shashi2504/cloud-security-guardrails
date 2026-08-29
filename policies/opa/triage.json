@@ -56,6 +56,27 @@
       "severity": null,
       "tool": "checkov"
     },
+    "CKV_AWS_115": {
+      "class": "WARN",
+      "description": "Ensure that AWS Lambda function is configured for function-level concurrent execution limit",
+      "rationale": "DoS and cost control. No exposure.",
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_116": {
+      "class": "WARN",
+      "description": "Ensure that AWS Lambda function is configured for a Dead Letter Queue (DLQ)",
+      "rationale": "Reliability: a lost invocation is a missed remediation. Worth adding, not merge-blocking.",
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_117": {
+      "class": "WARN",
+      "description": "Ensure that AWS Lambda function is configured inside a VPC",
+      "rationale": "Function calls only AWS APIs and touches no private resources. VPC placement would require a NAT gateway (~$32/mo) or several interface endpoints while removing nothing reachable.",
+      "severity": null,
+      "tool": "checkov"
+    },
     "CKV_AWS_144": {
       "class": "IGNORE",
       "description": "Ensure that S3 bucket has cross-region replication enabled",
@@ -67,6 +88,13 @@
       "class": "WARN",
       "description": "Ensure that S3 buckets are encrypted with KMS by default",
       "rationale": "CMK cost call \u2014 must match tfsec CMK rules.",
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_173": {
+      "class": "WARN",
+      "description": "Check encryption settings for Lambda environment variables",
+      "rationale": "The only variable is ENFORCE=false. Not a secret.",
       "severity": null,
       "tool": "checkov"
     },
@@ -109,6 +137,13 @@
       "class": "WARN",
       "description": "Ensure CloudTrail defines an SNS Topic",
       "rationale": "Notification, not prevention. Deferred with the alerting module.",
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_272": {
+      "class": "WARN",
+      "description": "Ensure AWS Lambda function is configured to validate code-signing",
+      "rationale": "Supply-chain control; meaningful with multiple publishers, not for one function deployed from this repo.",
       "severity": null,
       "tool": "checkov"
     },
@@ -186,6 +221,13 @@
       "class": "WARN",
       "description": "Ensure no security groups allow egress from 0.0.0.0:0 to port -1",
       "rationale": "Same call as tfsec egress rule \u2014 must match.",
+      "severity": null,
+      "tool": "checkov"
+    },
+    "CKV_AWS_50": {
+      "class": "IGNORE",
+      "description": "X-Ray tracing is enabled for Lambda",
+      "rationale": "Observability, not a security control.",
       "severity": null,
       "tool": "checkov"
     },
@@ -278,6 +320,13 @@
       "description": "IAM policy should avoid use of wildcards and instead apply the principle of least privilege",
       "rationale": null,
       "severity": "HIGH",
+      "tool": "tfsec"
+    },
+    "aws-lambda-enable-tracing": {
+      "class": "IGNORE",
+      "description": "Lambda functions should have X-Ray tracing enabled",
+      "rationale": "Same as CKV_AWS_50 \u2014 classification must match.",
+      "severity": "LOW",
       "tool": "tfsec"
     },
     "aws-s3-block-public-acls": {

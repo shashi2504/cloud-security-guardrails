@@ -64,6 +64,13 @@ security-vs-insecurity one); access logging warns (detection, not prevention).
 | tfsec | aws-cloudtrail-ensure-cloudwatch-integration | HIGH | CloudTrail logs should be stored in CloudWatch | WARN | Same finding as CKV2_AWS_10 — classification must match. |
 | checkov | CKV_AWS_252 |  | Ensure CloudTrail defines an SNS Topic | WARN | Notification, not prevention. Deferred with the alerting module. |
 | checkov | CKV_AWS_300 |  | Ensure S3 lifecycle configuration sets period for aborting failed uploads | WARN | Fixed in the logging module; kept as WARN so a regression is reported. |
+| checkov | CKV_AWS_115 |  | Ensure that AWS Lambda function is configured for function-level concurrent execution limit | WARN | DoS and cost control. No exposure. |
+| checkov | CKV_AWS_116 |  | Ensure that AWS Lambda function is configured for a Dead Letter Queue (DLQ) | WARN | Reliability: a lost invocation is a missed remediation. Worth adding, not merge-blocking. |
+| checkov | CKV_AWS_117 |  | Ensure that AWS Lambda function is configured inside a VPC | WARN | Function calls only AWS APIs and touches no private resources. VPC placement would require a NAT gateway (~$32/mo) or several interface endpoints while removing nothing reachable. |
+| checkov | CKV_AWS_173 |  | Check encryption settings for Lambda environment variables | WARN | The only variable is ENFORCE=false. Not a secret. |
+| checkov | CKV_AWS_272 |  | Ensure AWS Lambda function is configured to validate code-signing | WARN | Supply-chain control; meaningful with multiple publishers, not for one function deployed from this repo. |
+| checkov | CKV_AWS_50 |  | X-Ray tracing is enabled for Lambda | IGNORE | Observability, not a security control. |
+| tfsec | aws-lambda-enable-tracing | LOW | Lambda functions should have X-Ray tracing enabled | IGNORE | Same as CKV_AWS_50 — classification must match. |
 
 ## Baseline scan results (vulnerable environment)
 

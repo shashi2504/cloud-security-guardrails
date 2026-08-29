@@ -25,3 +25,13 @@ module "logging" {
   trail_name  = "csg-dev-trail"
   kms_key_arn = module.kms.key_arn
 }
+
+module "remediation" {
+  source = "../../modules/remediation"
+
+  source_dir  = "${path.root}/../../../remediation/lambda"
+  kms_key_arn = module.kms.key_arn
+
+  # Dry-run. Flipped to true only for the enforcement demo, then back.
+  enforce = false
+}
