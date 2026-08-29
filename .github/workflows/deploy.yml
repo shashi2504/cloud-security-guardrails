@@ -1,0 +1,124 @@
+name: Deploy
+
+# Runs only after the security gate passes on main. A pull request cannot
+# trigger this, and the apply role's trust policy would reject it anyway —
+# defence at both the workflow and the IAM layer.
+on:
+  workflow_run:
+    workflows: ["Security Gate"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  id-token: write   # required to request the OIDC token
+  contents: read
+
+env:
+  AWS_REGION: ap-south-1
+  TF_VERSION: 1.16.0
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    # workflow_run fires regardless of outcome, so the gate result is
+    # checked explicitly. Without this a failing gate would still deploy.
+    if: github.event.workflow_run.conclusion == 'success'
+    outputs:
+      changes: ${{ steps.plan.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::880636108185:role/csg-gha-plan
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Confirm assumed identity
+        run: aws sts get-caller-identity
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Terraform plan
+        id: plan
+        working-directory: terraform/environments/dev
+        run: |
+          terraform init
+          set +e
+          terraform plan -detailed-exitcode -out=tfplan
+          code=$?
+          set -e
+          # -detailed-exitcode: 0 no changes, 1 error, 2 changes pending
+          case $code in
+            0) echo "changes=false" >> "$GITHUB_OUTPUT"; echo "No changes." ;;
+            2) echo "changes=true"  >> "$GITHUB_OUTPUT"; echo "Changes pending." ;;
+            *) echo "plan failed"; exit 1 ;;
+          esac
+
+      - name: Evaluate plan against OPA policies
+        working-directory: terraform/environments/dev
+        run: |
+          curl -sSL -o /usr/local/bin/opa \
+            https://github.com/open-policy-agent/opa/releases/download/v1.20.1/opa_linux_amd64_static
+          chmod +x /usr/local/bin/opa
+          terraform show -json tfplan > plan.json
+
+          echo "--- S3 public access policy ---"
+          opa eval --format pretty \
+            --data ../../../policies/opa/s3_public_access.rego \
+            --input plan.json 'data.guardrails.s3.deny'
+
+          DENIALS=$(opa eval --format raw \
+            --data ../../../policies/opa/s3_public_access.rego \
+            --input plan.json 'count(data.guardrails.s3.deny)')
+
+          if [ "$DENIALS" -gt 0 ]; then
+            echo "FAIL: plan violates S3 public-access policy"
+            exit 1
+          fi
+          echo "OK: plan passes policy evaluation"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: terraform/environments/dev/tfplan
+          retention-days: 1
+
+  apply:
+    name: Apply
+    runs-on: ubuntu-latest
+    needs: plan
+    if: needs.plan.outputs.changes == 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::880636108185:role/csg-gha-apply
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Confirm assumed identity
+        run: aws sts get-caller-identity
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: terraform/environments/dev
+
+      - name: Terraform apply
+        working-directory: terraform/environments/dev
+        run: |
+          terraform init
+          terraform apply -auto-approve tfplan
