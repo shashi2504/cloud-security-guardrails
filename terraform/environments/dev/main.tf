@@ -35,3 +35,11 @@ module "remediation" {
   # Dry-run. Flipped to true only for the enforcement demo, then back.
   enforce = false
 }
+
+module "github_oidc" {
+  source = "../../modules/github-oidc"
+
+  github_org   = "shashi2504"
+  github_repo  = "cloud-security-guardrails"
+  state_bucket = "csg-tfstate-880636108185"
+}

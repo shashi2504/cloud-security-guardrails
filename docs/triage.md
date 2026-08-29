@@ -87,7 +87,15 @@ security-vs-insecurity one); access logging warns (detection, not prevention).
   2. Checkov CKV_AWS_109/111/356 - generic IAM checks applied to a KMS resource
      policy. Checkov's own KMS-aware CKV_AWS_33 passes the same statement, so
      the tool contradicts itself on one resource.
-  3. tfsec aws-iam-no-policy-wildcards - matches any "*" in a Resource string
+  3. Checkov CKV_AWS_286/289 on a permissions boundary - a boundary is a
+     ceiling, not a grant: broad actions in it cap what a role may do and
+     confer nothing. Checkov cannot distinguish a boundary from an identity
+     policy because both are aws_iam_policy and only the attachment point
+     differs. It flagged the control that fixes the escalation it had just
+     reported. The same two checks on the deployment role are also false:
+     their evaluated_keys is policy/Statement/[0]/Action only, so the
+     iam:PermissionsBoundary condition that blocks escalation is never read.
+  4. tfsec aws-iam-no-policy-wildcards - matches any "*" in a Resource string
      without parsing which ARN segment it falls in. Fires on
      "<log-group-arn>:*", where the wildcard is confined to the log-stream
      segment of a single log group.
