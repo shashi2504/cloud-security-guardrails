@@ -79,7 +79,7 @@ test_posture_excluded_from_code_score if {
 		with data.conditions as conds
 
 	r.code_score == 100
-	r.account_score == 95
+	r.account_score == 98
 	r.posture_count == 1
 }
 
@@ -91,4 +91,12 @@ test_score_floors_at_zero if {
 		with data.triage as table
 		with data.conditions as conds
 	r.code_score == 0
+}
+
+test_account_score_null_without_cspm_scan if {
+	r := score.report with input as {"findings": [f("CKV_AWS_53", "bucket-a")]}
+		with data.triage as table
+		with data.conditions as conds
+	r.account_score == null
+	r.scanned_by_cspm == false
 }

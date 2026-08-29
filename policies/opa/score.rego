@@ -24,7 +24,21 @@ import rego.v1
 
 import data.guardrails.prowler.scope
 
-findings := object.get(input, "findings", [])
+all_findings := object.get(input, "findings", [])
+
+# The code score covers static IaC scanners. Prowler findings are runtime
+# observations classified by guardrails.prowler, not by the triage table,
+# so scoring them here would apply the wrong classifier to a third of the
+# input and inflate the unclassified count.
+findings contains f if {
+	some f in all_findings
+	f.tool in {"tfsec", "checkov"}
+}
+
+prowler_findings contains f if {
+	some f in all_findings
+	f.tool == "prowler"
+}
 
 classify(rule_id) := cls if {
 	cls := data.triage[rule_id].class
@@ -63,7 +77,7 @@ unclassified_findings contains [f.resource, f.rule_id] if {
 }
 
 posture_findings contains [f.resource, f.rule_id] if {
-	some f in findings
+	some f in prowler_findings
 	scope.is_account_posture(f.rule_id)
 }
 
@@ -88,8 +102,17 @@ code_score := s if {
 
 # Account posture is scored separately: no pull request can fix root MFA,
 # so blending it into the code score hides which of the two is failing.
-account_score := s if {
-	s := 100 - min([100, count(posture_findings) * 5])
+#
+# Reported as null when no CSPM scan is present. A perfect score for an
+# account nobody audited would be absence of evidence dressed up as
+# evidence of absence.
+#
+# The penalty is capped rather than linear: posture findings are unbounded
+# hygiene items, and 24 of them does not mean "maximally compromised".
+account_score := null if {
+	count(prowler_findings) == 0
+} else := s if {
+	s := 100 - min([60, count(posture_findings) * 2])
 }
 
 report := {
@@ -99,5 +122,6 @@ report := {
 	"advisory_count": count(advisory_findings),
 	"unclassified_count": count(unclassified_findings),
 	"posture_count": count(posture_findings),
-	"raw_finding_count": count(findings),
+	"raw_finding_count": count(all_findings),
+	"scanned_by_cspm": count(prowler_findings) > 0,
 }

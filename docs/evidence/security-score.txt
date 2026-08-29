@@ -1,0 +1,49 @@
+# Security score: dev (secure landing zone) vs vulnerable (test fixture)
+#
+# Scored by distinct (resource, condition) exposure, not by finding count.
+# One public bucket produces nine findings across two scanners; that is one
+# exposure, not nine. Raw counts are reported alongside to show the gap.
+
+## dev
+{
+  "account_score": null,
+  "advisory_count": 6,
+  "code_score": 82,
+  "distinct_exposures": 0,
+  "posture_count": 0,
+  "raw_finding_count": 11,
+  "scanned_by_cspm": false,
+  "unclassified_count": 0
+}
+
+## vulnerable
+{
+  "account_score": 52,
+  "advisory_count": 9,
+  "code_score": 0,
+  "distinct_exposures": 4,
+  "posture_count": 24,
+  "raw_finding_count": 81,
+  "scanned_by_cspm": true,
+  "unclassified_count": 0
+}
+
+## Exposures identified in the vulnerable environment
+[
+  [
+    "aws_ebs_volume.unencrypted",
+    "unencrypted_storage"
+  ],
+  [
+    "aws_iam_policy.overly_permissive",
+    "iam_full_admin"
+  ],
+  [
+    "aws_s3_bucket_public_access_block.public_data",
+    "s3_public_access"
+  ],
+  [
+    "aws_security_group.wide_open",
+    "open_admin_port"
+  ]
+]
