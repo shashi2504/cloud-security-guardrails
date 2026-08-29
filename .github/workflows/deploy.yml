@@ -50,7 +50,10 @@ jobs:
         run: |
           terraform init
           set +e
-          terraform plan -detailed-exitcode -out=tfplan
+          # -lock=false keeps the plan role genuinely read-only. Safe here:
+          # a plan writes nothing to infrastructure, and the apply job takes
+          # the lock normally.
+          terraform plan -lock=false -detailed-exitcode -out=tfplan
           code=$?
           set -e
           # -detailed-exitcode: 0 no changes, 1 error, 2 changes pending

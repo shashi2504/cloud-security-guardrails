@@ -110,6 +110,10 @@ resource "aws_iam_role_policy" "plan_state" {
     Version = "2012-10-17"
     Statement = [{
       Effect = "Allow"
+      # Read-only. The plan job runs with -lock=false so it never writes a
+      # lock object: granting the plan role write access to state would let
+      # it overwrite the state file, and whoever controls state controls what
+      # the next apply creates or destroys.
       Action = ["s3:GetObject", "s3:ListBucket"]
       Resource = [
         "arn:${data.aws_partition.current.partition}:s3:::${var.state_bucket}",
