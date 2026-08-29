@@ -3,115 +3,272 @@
   "uid": "csg-posture",
   "timezone": "browser",
   "refresh": "5m",
-  "time": { "from": "now-7d", "to": "now" },
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
   "panels": [
     {
       "type": "stat",
       "title": "Code score",
       "description": "IaC posture. 100 means no blocking findings and no advisories in the scanned environment.",
-      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
       "fieldConfig": {
         "defaults": {
-          "min": 0, "max": 100,
+          "min": 0,
+          "max": 100,
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "orange", "value": 60 },
-              { "color": "green", "value": 90 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 60
+              },
+              {
+                "color": "green",
+                "value": 90
+              }
             ]
           }
         }
       },
-      "targets": [{
-        "namespace": "CloudSecurityGuardrails",
-        "metricName": "CodeScore",
-        "statistic": "Maximum",
-        "region": "ap-south-1"
-      }]
+      "targets": [
+        {
+          "namespace": "CloudSecurityGuardrails",
+          "metricName": "CodeScore",
+          "statistic": "Maximum",
+          "region": "ap-south-1",
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "P034F075C744B399F"
+          },
+          "refId": "A",
+          "dimensions": {},
+          "matchExact": true,
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "period": "",
+          "id": "",
+          "expression": ""
+        }
+      ],
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "P034F075C744B399F"
+      }
     },
     {
       "type": "stat",
       "title": "Account posture score",
       "description": "Scored separately from code: no pull request fixes root MFA, so a blended number would hide which of the two is failing.",
-      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
       "fieldConfig": {
         "defaults": {
-          "min": 0, "max": 100,
+          "min": 0,
+          "max": 100,
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "orange", "value": 60 },
-              { "color": "green", "value": 90 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 60
+              },
+              {
+                "color": "green",
+                "value": 90
+              }
             ]
           }
         }
       },
-      "targets": [{
-        "namespace": "CloudSecurityGuardrails",
-        "metricName": "AccountScore",
-        "statistic": "Maximum",
-        "region": "ap-south-1"
-      }]
+      "targets": [
+        {
+          "namespace": "CloudSecurityGuardrails",
+          "metricName": "AccountScore",
+          "statistic": "Maximum",
+          "region": "ap-south-1",
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "P034F075C744B399F"
+          },
+          "refId": "A",
+          "dimensions": {},
+          "matchExact": true,
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "period": "",
+          "id": "",
+          "expression": ""
+        }
+      ],
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "P034F075C744B399F"
+      }
     },
     {
       "type": "stat",
       "title": "Distinct exposures",
       "description": "Deduplicated by (resource, condition). One public bucket produces nine scanner findings; that is one exposure, not nine.",
-      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
       "fieldConfig": {
         "defaults": {
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 1 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
             ]
           }
         }
       },
-      "targets": [{
-        "namespace": "CloudSecurityGuardrails",
-        "metricName": "DistinctExposures",
-        "statistic": "Maximum",
-        "region": "ap-south-1"
-      }]
+      "targets": [
+        {
+          "namespace": "CloudSecurityGuardrails",
+          "metricName": "DistinctExposures",
+          "statistic": "Maximum",
+          "region": "ap-south-1",
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "P034F075C744B399F"
+          },
+          "refId": "A",
+          "dimensions": {},
+          "matchExact": true,
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "period": "",
+          "id": "",
+          "expression": ""
+        }
+      ],
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "P034F075C744B399F"
+      }
     },
     {
       "type": "stat",
       "title": "Account posture findings",
       "description": "Hygiene items no pull request can fix: root MFA, long-lived keys, password policy.",
-      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
-      "targets": [{
-        "namespace": "CloudSecurityGuardrails",
-        "metricName": "PostureFindings",
-        "statistic": "Maximum",
-        "region": "ap-south-1"
-      }]
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "targets": [
+        {
+          "namespace": "CloudSecurityGuardrails",
+          "metricName": "PostureFindings",
+          "statistic": "Maximum",
+          "region": "ap-south-1",
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "P034F075C744B399F"
+          },
+          "refId": "A",
+          "dimensions": {},
+          "matchExact": true,
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "period": "",
+          "id": "",
+          "expression": ""
+        }
+      ],
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "P034F075C744B399F"
+      }
     },
     {
       "type": "timeseries",
       "title": "Score trend",
       "description": "A score at scan time is a snapshot; over time it answers whether posture improved after a change.",
-      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 5 },
-      "fieldConfig": { "defaults": { "min": 0, "max": 100 } },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 100
+        }
+      },
       "targets": [
         {
           "refId": "A",
           "namespace": "CloudSecurityGuardrails",
           "metricName": "CodeScore",
           "statistic": "Maximum",
-          "region": "ap-south-1"
+          "region": "ap-south-1",
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "P034F075C744B399F"
+          },
+          "dimensions": {},
+          "matchExact": true,
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "period": "",
+          "id": "",
+          "expression": ""
         },
         {
           "refId": "B",
           "namespace": "CloudSecurityGuardrails",
           "metricName": "AccountScore",
           "statistic": "Maximum",
-          "region": "ap-south-1"
+          "region": "ap-south-1",
+          "datasource": {
+            "type": "cloudwatch",
+            "uid": "P034F075C744B399F"
+          },
+          "dimensions": {},
+          "matchExact": true,
+          "metricQueryType": 0,
+          "metricEditorMode": 0,
+          "period": "",
+          "id": "",
+          "expression": ""
         }
-      ]
+      ],
+      "datasource": {
+        "type": "cloudwatch",
+        "uid": "P034F075C744B399F"
+      }
     }
   ]
 }

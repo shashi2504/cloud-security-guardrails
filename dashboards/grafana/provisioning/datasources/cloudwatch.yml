@@ -4,6 +4,6 @@ datasources:
   - name: CloudWatch
     type: cloudwatch
     jsonData:
-      authType: keys        # resolves via the mounted ~/.aws profile
+      authType: default   # SDK credential chain, which picks up AWS_ACCESS_KEY_ID from the environment
       defaultRegion: ap-south-1
     editable: false
