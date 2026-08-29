@@ -1,0 +1,30 @@
+{
+  "conditions": {
+    "CKV_AWS_53": "s3_public_access",
+    "CKV_AWS_54": "s3_public_access",
+    "CKV_AWS_55": "s3_public_access",
+    "CKV_AWS_56": "s3_public_access",
+    "CKV_AWS_70": "s3_public_access",
+    "CKV2_AWS_6": "s3_public_access",
+    "aws-s3-block-public-acls": "s3_public_access",
+    "aws-s3-block-public-policy": "s3_public_access",
+    "aws-s3-ignore-public-acls": "s3_public_access",
+    "aws-s3-no-public-buckets": "s3_public_access",
+    "s3_bucket_public_access": "s3_public_access",
+    "s3_bucket_level_public_access_block": "s3_public_access",
+    "s3_bucket_cross_account_access": "s3_public_access",
+
+    "CKV_AWS_24": "open_admin_port",
+    "CKV_AWS_25": "open_admin_port",
+    "aws-ec2-no-public-ingress-sgr": "open_admin_port",
+
+    "CKV_AWS_3": "unencrypted_storage",
+    "aws-ec2-enable-volume-encryption": "unencrypted_storage",
+    "ec2_ebs_volume_encryption": "unencrypted_storage",
+
+    "CKV_AWS_62": "iam_full_admin",
+    "aws-iam-no-policy-wildcards": "iam_full_admin",
+    "CKV_AWS_286": "iam_privilege_escalation",
+    "CKV_AWS_289": "iam_permissions_management"
+  }
+}
