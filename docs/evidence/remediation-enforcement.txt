@@ -1,0 +1,53 @@
+# Remediation enforcement run — 2026-08-29T05:48:56Z
+
+## Before
+### Tagged AutoRemediate=enabled (should be remediated)
+------------------------
+|DescribeSecurityGroups|
++-------------+--------+
+|    Cidr     | Port   |
++-------------+--------+
+|  0.0.0.0/0  |  22    |
+|  0.0.0.0/0  |  3389  |
++-------------+--------+
+### Tagged AutoRemediate=disabled (should be skipped)
+------------------------
+|DescribeSecurityGroups|
++-------------+--------+
+|    Cidr     | Port   |
++-------------+--------+
+|  0.0.0.0/0  |  22    |
++-------------+--------+
+
+## Invocation results
+### Tagged AutoRemediate=enabled
+{
+  "status": "remediated",
+  "reason": "all required tags present"
+}
+### Tagged AutoRemediate=disabled
+{
+  "status": "skipped",
+  "reason": "tag AutoRemediate=disabled, requires enabled"
+}
+
+## After
+### Tagged AutoRemediate=enabled — 22 and 3389 revoked
+### Tagged AutoRemediate=disabled — untouched
+------------------------
+|DescribeSecurityGroups|
++-------------+--------+
+|    Cidr     | Port   |
++-------------+--------+
+|  0.0.0.0/0  |  22    |
++-------------+--------+
+
+## Drift tags written to the remediated group
+-----------------------------------------------
+|           DescribeSecurityGroups            |
++---------------+-----------------------------+
+|      Key      |            Value            |
++---------------+-----------------------------+
+|  RemediatedAt |  2026-08-29T05:49:09+00:00  |
+|  RemediatedBy |  csg-auto-remediation       |
++---------------+-----------------------------+
