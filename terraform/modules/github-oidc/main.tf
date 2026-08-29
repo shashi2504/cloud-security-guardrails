@@ -324,6 +324,18 @@ resource "aws_iam_role_policy" "prowler_extra" {
       Action   = ["sns:Publish", "kms:GenerateDataKey", "kms:Decrypt"]
       Resource = "*"
       }, {
+      # PutMetricData does not support resource-level permissions; the
+      # namespace condition is the only available scoping.
+      Sid      = "EmitScoreMetrics"
+      Effect   = "Allow"
+      Action   = ["cloudwatch:PutMetricData"]
+      Resource = "*"
+      Condition = {
+        StringEquals = {
+          "cloudwatch:namespace" = "CloudSecurityGuardrails"
+        }
+      }
+      }, {
       Effect = "Allow"
       Action = [
         "account:Get*",

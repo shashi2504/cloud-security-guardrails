@@ -91,6 +91,37 @@ jobs:
             --input findings.json 'count(data.guardrails.prowler.blocking)')
           echo "blocking=$BLOCKING" >> "$GITHUB_OUTPUT"
 
+      # A score computed at scan time is a snapshot. Emitted as a metric it
+      # becomes a trend, which is what answers "did posture improve after
+      # that change".
+      - name: Emit score metrics
+        run: |
+          CODE=$(opa eval --format raw \
+            --data policies/opa/score.rego --data policies/opa/prowler_scope.rego \
+            --data policies/opa/triage.json --data policies/opa/conditions.json \
+            --input findings.json 'data.guardrails.score.report.code_score')
+          ACCOUNT=$(opa eval --format raw \
+            --data policies/opa/score.rego --data policies/opa/prowler_scope.rego \
+            --data policies/opa/triage.json --data policies/opa/conditions.json \
+            --input findings.json 'data.guardrails.score.report.account_score')
+          EXPOSURES=$(opa eval --format raw \
+            --data policies/opa/score.rego --data policies/opa/prowler_scope.rego \
+            --data policies/opa/triage.json --data policies/opa/conditions.json \
+            --input findings.json 'data.guardrails.score.report.distinct_exposures')
+          POSTURE=$(opa eval --format raw \
+            --data policies/opa/prowler_triage.rego --data policies/opa/prowler_scope.rego \
+            --input findings.json 'count(data.guardrails.prowler.posture)')
+
+          echo "code=$CODE account=$ACCOUNT exposures=$EXPOSURES posture=$POSTURE"
+
+          aws cloudwatch put-metric-data \
+            --namespace CloudSecurityGuardrails \
+            --metric-data \
+              "MetricName=CodeScore,Value=$CODE,Unit=None" \
+              "MetricName=AccountScore,Value=$ACCOUNT,Unit=None" \
+              "MetricName=DistinctExposures,Value=$EXPOSURES,Unit=Count" \
+              "MetricName=PostureFindings,Value=$POSTURE,Unit=Count"
+
       - name: Publish findings to SNS
         if: steps.classify.outputs.blocking != '0'
         run: |
