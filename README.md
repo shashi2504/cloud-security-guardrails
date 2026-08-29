@@ -42,13 +42,13 @@ The scoring model answers the same problem: 81 raw findings against the
 vulnerable fixture reduce to **four distinct exposures**, one per planted
 flaw, because findings are deduplicated by (resource, condition) rather than
 counted individually.
-                 dev          vulnerable
 
-raw findings 11 81
-distinct exposures 0 4
-code score 82 0
-account score null 52
-
+|                    | dev  | vulnerable |
+|--------------------|------|------------|
+| raw findings       | 11   | 81         |
+| distinct exposures | 0    | 4          |
+| code score         | 82   | 0          |
+| account score      | n/a  | 52         |
 
 Three properties, each following from something observed while building it:
 
