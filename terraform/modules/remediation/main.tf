@@ -8,10 +8,15 @@ data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 data "aws_region" "current" {}
 
+# output_file_mode fixes the permission bits in the archive. Without it the
+# zip hash depends on local file mode and mtime, so a plan run on a fresh
+# clone reports a change to the function on every run — noise that trains
+# people to ignore plan output.
 data "archive_file" "handler" {
-  type        = "zip"
-  source_file = "${var.source_dir}/handler.py"
-  output_path = "${path.module}/.build/handler.zip"
+  type             = "zip"
+  source_file      = "${var.source_dir}/handler.py"
+  output_path      = "${path.module}/.build/handler.zip"
+  output_file_mode = "0644"
 }
 
 resource "aws_iam_role" "this" {
