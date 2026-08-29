@@ -22,6 +22,10 @@ corrected.
 
 import logging
 import os
+from datetime import datetime, timezone
+
+import boto3
+from botocore.exceptions import ClientError
 
 logging.basicConfig()
 log = logging.getLogger()
@@ -154,3 +158,77 @@ def remediate_open_security_group(ec2, group_id: str, permissions: list,
     ec2.revoke_security_group_ingress(GroupId=group_id, IpPermissions=offending)
     log.warning("REMEDIATED %s: revoked %d rule(s)", group_id, len(offending))
     return {**action, "status": "remediated", "reason": reason}
+
+
+def tag_as_remediated(client, resource_type: str, identifier: str) -> None:
+    """Record that this resource was changed outside Terraform.
+
+    The Terraform still describes the insecure state; the next apply would
+    reintroduce it. Tagging makes that drift visible instead of silent.
+    """
+    stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    tags = [
+        {"Key": "RemediatedAt", "Value": stamp},
+        {"Key": "RemediatedBy", "Value": "csg-auto-remediation"},
+    ]
+
+    if resource_type == "security-group":
+        client.create_tags(Resources=[identifier], Tags=tags)
+    elif resource_type == "bucket":
+        existing = client.get_bucket_tagging(Bucket=identifier).get("TagSet", [])
+        keep = [t for t in existing if t["Key"] not in {"RemediatedAt", "RemediatedBy"}]
+        client.put_bucket_tagging(
+            Bucket=identifier,
+            Tagging={"TagSet": keep + tags},
+        )
+
+
+def bucket_tags(s3, bucket: str) -> dict:
+    try:
+        tag_set = s3.get_bucket_tagging(Bucket=bucket).get("TagSet", [])
+    except ClientError as exc:
+        if exc.response["Error"]["Code"] == "NoSuchTagSet":
+            return {}
+        raise
+    return {t["Key"]: t["Value"] for t in tag_set}
+
+
+def lambda_handler(event, context):
+    """Entry point. Dispatches on the CloudTrail event name."""
+    enforce = enforcing()
+    detail = event.get("detail", {})
+    event_name = detail.get("eventName")
+
+    log.info("event=%s enforce=%s", event_name, enforce)
+
+    s3 = boto3.client("s3")
+    ec2 = boto3.client("ec2")
+
+    if event_name in {"PutBucketPolicy", "PutBucketAcl", "DeletePublicAccessBlock"}:
+        bucket = detail.get("requestParameters", {}).get("bucketName")
+        if not bucket:
+            return {"status": "ignored", "reason": "no bucket in event"}
+
+        tags = bucket_tags(s3, bucket)
+        result = remediate_public_bucket(s3, bucket, tags, enforce)
+        if result["status"] == "remediated":
+            tag_as_remediated(s3, "bucket", bucket)
+        return result
+
+    if event_name == "AuthorizeSecurityGroupIngress":
+        group_id = detail.get("requestParameters", {}).get("groupId")
+        if not group_id:
+            return {"status": "ignored", "reason": "no group id in event"}
+
+        described = ec2.describe_security_groups(GroupIds=[group_id])
+        group = described["SecurityGroups"][0]
+        tags = {t["Key"]: t["Value"] for t in group.get("Tags", [])}
+
+        result = remediate_open_security_group(
+            ec2, group_id, group.get("IpPermissions", []), tags, enforce
+        )
+        if result["status"] == "remediated":
+            tag_as_remediated(ec2, "security-group", group_id)
+        return result
+
+    return {"status": "ignored", "reason": f"unhandled event {event_name}"}
