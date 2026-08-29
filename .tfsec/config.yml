@@ -1,8 +1,0 @@
-# Rule exclusions with recorded reasons. Preferred over inline ignores where
-# tfsec's line attribution inside jsonencode blocks does not resolve.
-exclude:
-  # Fires on Resource = "<log-group-arn>:*" in the flow-logs role policy.
-  # The wildcard is confined to the log-stream segment of a single log group
-  # ARN; VPC flow logs create a stream per ENI so they cannot be enumerated.
-  # tfsec matches any "*" in a Resource string without parsing ARN segments.
-  - aws-iam-no-policy-wildcards
