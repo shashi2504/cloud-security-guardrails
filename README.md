@@ -16,7 +16,7 @@ scanners are not the hard part; deciding which findings justify stopping a
 deployment is. That decision lives in
 [`docs/triage.md`](docs/triage.md) and is enforced in CI.
 
-Two findings from building it:
+Three findings from building it:
 
 - **tfsec `aws-s3-enable-bucket-encryption` is a false positive.** AWS has
   applied SSE-S3 to all new buckets by default since January 2023. tfsec is
@@ -26,7 +26,15 @@ Two findings from building it:
   the unencrypted volume was not attached to an instance. `CKV_AWS_20` and
   `CKV_AWS_57` passed because the bucket is public via bucket *policy*
   rather than ACL. A wide-open bucket produced three PASSED results — which
-  is why the security score is not passed-over-total.
+  is why any security score here cannot be passed-over-total.
+- **Scanners disagree with themselves.** tfsec's generic IAM-wildcard rule
+  fires on `Resource = "<log-group-arn>:*"` — a wildcard confined to the
+  log-stream segment of one log group — because it matches any `*` in a
+  Resource string without parsing which ARN segment it falls in. Checkov's
+  generic IAM checks flag a KMS *resource* policy while Checkov's own
+  KMS-aware `CKV_AWS_33` passes the same statement. Both are suppressed
+  inline at the point of use, with the reasoning in the code, rather than
+  globally.
 
 ## What is built
 
