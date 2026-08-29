@@ -58,3 +58,13 @@ def test_legitimate_rules_untouched():
 def test_rule_without_ports_ignored():
     """protocol -1 rules have no FromPort; do not crash."""
     assert open_admin_rules([{"IpProtocol": "-1", "IpRanges": PUBLIC}]) == []
+
+
+def test_self_triggered_events_ignored():
+    from handler import lambda_handler
+    event = {"detail": {
+        "eventName": "PutBucketPublicAccessBlock",
+        "userIdentity": {"arn": "arn:aws:sts::1234:assumed-role/csg-auto-remediation/x"},
+        "requestParameters": {"bucketName": "some-bucket"},
+    }}
+    assert lambda_handler(event, None)["status"] == "ignored"

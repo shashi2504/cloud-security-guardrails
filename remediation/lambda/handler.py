@@ -199,12 +199,28 @@ def lambda_handler(event, context):
     detail = event.get("detail", {})
     event_name = detail.get("eventName")
 
+    # The handler's own PutBucketPublicAccessBlock call re-triggers the
+    # EventBridge rule. Ignoring events this role caused breaks the loop
+    # without relying on the remediation being idempotent.
+    principal = detail.get("userIdentity", {}).get("arn", "")
+    if "csg-auto-remediation" in principal:
+        return {"status": "ignored", "reason": "self-triggered event"}
+
     log.info("event=%s enforce=%s", event_name, enforce)
 
     s3 = boto3.client("s3")
     ec2 = boto3.client("ec2")
 
-    if event_name in {"PutBucketPolicy", "PutBucketAcl", "DeletePublicAccessBlock"}:
+    # Event names verified against this account's CloudTrail history.
+    # AWS uses PutBucketPublicAccessBlock / DeleteBucketPublicAccessBlock,
+    # not the shorter forms the API docs suggest. PutBucketAcl is included
+    # but has not been observed here — no ACL operations have occurred.
+    if event_name in {
+        "PutBucketPolicy",
+        "PutBucketAcl",
+        "PutBucketPublicAccessBlock",
+        "DeleteBucketPublicAccessBlock",
+    }:
         bucket = detail.get("requestParameters", {}).get("bucketName")
         if not bucket:
             return {"status": "ignored", "reason": "no bucket in event"}
