@@ -36,6 +36,33 @@ Three findings from building it:
   inline at the point of use, with the reasoning in the code, rather than
   globally.
 
+## The score
+
+The scoring model answers the same problem: 81 raw findings against the
+vulnerable fixture reduce to **four distinct exposures**, one per planted
+flaw, because findings are deduplicated by (resource, condition) rather than
+counted individually.
+                 dev          vulnerable
+
+raw findings 11 81
+distinct exposures 0 4
+code score 82 0
+account score null 52
+
+
+Three properties, each following from something observed while building it:
+
+- **Not passed-over-total.** Three checks passed on a world-readable bucket
+  because they tested conditions that did not apply.
+- **Deduplicated by exposure.** Counting findings measures how many
+  overlapping rules the scanners ship, not how exposed the account is.
+- **Unclassified findings carry weight.** If unknown rules scored zero, the
+  score would improve every time scanner coverage grew.
+
+Code posture and account posture are scored separately: no pull request fixes
+root MFA, so a blended number would hide which of the two is failing. The
+account score is `null` rather than 100 when no CSPM scan is present.
+
 ## What is built
 
 | Component | Status |
@@ -44,9 +71,10 @@ Three findings from building it:
 | Triage table — 48 rules, 19 BLOCK / 21 WARN / 8 IGNORE | Working |
 | Triage table executable as OPA data, drift-checked in CI | Working |
 | Deliberately vulnerable environment as a detection regression test | Working |
-| OPA policy unit tests (24) | Working |
+| OPA policy unit tests (32) | Working |
 | Secure landing zone: segmented VPC, KMS CMK with rotation, KMS-encrypted CloudTrail | Working |
 | Prowler CSPM scanning with CI-actionable vs account-posture split | Working |
+| Deduplicated security scoring, separate code and account posture scores | Working |
 | Terraform remote state, S3 backend with native locking | Working |
 | Conditional S3 public-access policy (`PublicAccess=intentional`) | Written and tested, not yet in CI |
 | Environment-aware severity gating | Written and tested, not yet in CI |
@@ -57,8 +85,8 @@ role exists for it.
 
 ## What is not built
 
-Grafana dashboards, SNS/Slack alerting, a security score, and Lambda
-auto-remediation are described in [`docs/blueprint.md`](docs/blueprint.md)
+Grafana dashboards, SNS/Slack alerting, and Lambda auto-remediation are
+described in [`docs/blueprint.md`](docs/blueprint.md)
 but not implemented.
 
 ## Evidence
