@@ -84,6 +84,19 @@ resource "aws_iam_role_policy" "this" {
         Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
         Resource = "${aws_cloudwatch_log_group.this.arn}:*"
       },
+      {
+        Sid      = "PublishAlerts"
+        Effect   = "Allow"
+        Action   = ["sns:Publish"]
+        Resource = var.sns_topic_arn
+      },
+      {
+        # The topic is KMS-encrypted, so publishing needs key access too.
+        Sid      = "EncryptAlerts"
+        Effect   = "Allow"
+        Action   = ["kms:GenerateDataKey", "kms:Decrypt"]
+        Resource = var.kms_key_arn
+      },
     ]
   })
 }
@@ -106,7 +119,8 @@ resource "aws_lambda_function" "this" {
 
   environment {
     variables = {
-      ENFORCE = tostring(var.enforce)
+      ENFORCE       = tostring(var.enforce)
+      SNS_TOPIC_ARN = var.sns_topic_arn
     }
   }
 

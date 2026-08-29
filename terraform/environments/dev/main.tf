@@ -26,11 +26,19 @@ module "logging" {
   kms_key_arn = module.kms.key_arn
 }
 
+module "alerting" {
+  source = "../../modules/alerting"
+
+  kms_key_arn    = module.kms.key_arn
+  email_endpoint = "screwghh@gmail.com"
+}
+
 module "remediation" {
   source = "../../modules/remediation"
 
-  source_dir  = "${path.root}/../../../remediation/lambda"
-  kms_key_arn = module.kms.key_arn
+  source_dir    = "${path.root}/../../../remediation/lambda"
+  kms_key_arn   = module.kms.key_arn
+  sns_topic_arn = module.alerting.topic_arn
 
   # Dry-run. Flipped to true only for the enforcement demo, then back.
   enforce = false

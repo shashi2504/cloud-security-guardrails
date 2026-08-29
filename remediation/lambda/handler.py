@@ -193,6 +193,42 @@ def bucket_tags(s3, bucket: str) -> dict:
     return {t["Key"]: t["Value"] for t in tag_set}
 
 
+def publish_alert(result: dict) -> None:
+    """Send remediation results to SNS.
+
+    Only remediated and skipped results are published. Dry-run and no-op
+    fire on ordinary activity and would make the topic noisy enough to
+    ignore — the same failure mode as an unfiltered scanner.
+    """
+    topic = os.environ.get("SNS_TOPIC_ARN")
+    if not topic or result["status"] not in {"remediated", "skipped"}:
+        return
+
+    verb = "REMEDIATED" if result["status"] == "remediated" else "SKIPPED"
+    body = (
+        f"{verb}: {result['action']}\n"
+        f"Resource: {result['resource']}\n"
+        f"Reason:   {result['reason']}\n"
+    )
+
+    if result["status"] == "remediated":
+        body += (
+            "\nThis changed the live resource, not the Terraform that "
+            "created it. The next apply will reintroduce the finding "
+            "unless the code is corrected."
+        )
+
+    try:
+        boto3.client("sns").publish(
+            TopicArn=topic,
+            Subject=f"[csg] {verb}: {result['resource']}"[:100],
+            Message=body,
+        )
+    except ClientError as exc:
+        # An alerting failure must not mask the remediation result.
+        log.error("failed to publish alert: %s", exc)
+
+
 def lambda_handler(event, context):
     """Entry point. Dispatches on the CloudTrail event name."""
     enforce = enforcing()
@@ -229,6 +265,7 @@ def lambda_handler(event, context):
         result = remediate_public_bucket(s3, bucket, tags, enforce)
         if result["status"] == "remediated":
             tag_as_remediated(s3, "bucket", bucket)
+        publish_alert(result)
         return result
 
     if event_name == "AuthorizeSecurityGroupIngress":
@@ -245,6 +282,7 @@ def lambda_handler(event, context):
         )
         if result["status"] == "remediated":
             tag_as_remediated(ec2, "security-group", group_id)
+        publish_alert(result)
         return result
 
     return {"status": "ignored", "reason": f"unhandled event {event_name}"}

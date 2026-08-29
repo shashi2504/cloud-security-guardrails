@@ -29,3 +29,7 @@ output "gha_plan_role_arn" {
 output "gha_apply_role_arn" {
   value = module.github_oidc.apply_role_arn
 }
+
+output "alert_topic_arn" {
+  value = module.alerting.topic_arn
+}

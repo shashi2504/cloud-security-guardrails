@@ -24,3 +24,8 @@ variable "log_retention_days" {
   type    = number
   default = 7
 }
+
+variable "sns_topic_arn" {
+  description = "Topic the function publishes remediation results to"
+  type        = string
+}
