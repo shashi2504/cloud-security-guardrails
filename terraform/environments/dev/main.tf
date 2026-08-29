@@ -39,7 +39,9 @@ module "remediation" {
 module "github_oidc" {
   source = "../../modules/github-oidc"
 
-  github_org   = "shashi2504"
-  github_repo  = "cloud-security-guardrails"
-  state_bucket = "csg-tfstate-880636108185"
+  github_org     = "shashi2504"
+  github_org_id  = "95679221"
+  github_repo    = "cloud-security-guardrails"
+  github_repo_id = "1349996686"
+  state_bucket   = "csg-tfstate-880636108185"
 }

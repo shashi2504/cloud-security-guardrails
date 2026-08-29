@@ -24,7 +24,12 @@ resource "aws_iam_openid_connect_provider" "github" {
 }
 
 locals {
-  repo = "${var.github_org}/${var.github_repo}"
+  # GitHub appends immutable numeric IDs to the org and repo in the OIDC
+  # subject claim: repo:owner@<org-id>/repo@<repo-id>:ref:refs/heads/main
+  # The IDs pin the claim to this specific repository — a repo recreated
+  # under the same name gets a different ID and will not match.
+  repo_exact = "${var.github_org}@${var.github_org_id}/${var.github_repo}@${var.github_repo_id}"
+  repo_glob  = "${var.github_org}@*/${var.github_repo}@*"
 }
 
 data "aws_iam_policy_document" "assume_plan" {
@@ -48,8 +53,8 @@ data "aws_iam_policy_document" "assume_plan" {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
       values = [
-        "repo:${local.repo}:pull_request",
-        "repo:${local.repo}:ref:refs/heads/main",
+        "repo:${local.repo_glob}:pull_request",
+        "repo:${local.repo_glob}:ref:refs/heads/main",
       ]
     }
   }
@@ -76,7 +81,7 @@ data "aws_iam_policy_document" "assume_apply" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${local.repo}:ref:refs/heads/main"]
+      values   = ["repo:${local.repo_exact}:ref:refs/heads/main"]
     }
   }
 }
